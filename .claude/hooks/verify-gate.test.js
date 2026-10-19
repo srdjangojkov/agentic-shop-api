@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Runs the verify-gate Stop hook as Claude Code would (JSON on stdin) against a
 // throwaway fixture repo in the OS temp directory, and checks its decisions.
+// The fixture mirrors the repo layout: a root (Express) package and nest/.
 // The fixture's "typecheck" and "test" scripts are tiny Node scripts that log
 // each run and fail when a flag file exists, so no real project code runs.
 // Usage: node .claude/hooks/verify-gate.test.js
@@ -26,8 +27,17 @@ console.log(name + " ok");
 const fixtures = [];
 
 function makeFixture({ withTypecheck = true, withDeps = false } = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "verify-gate-fixture-"));
-  fixtures.push(dir);
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "verify-gate-fixture-"));
+  fixtures.push(root);
+  // Root package: never checked by the gate, so its scripts always fail.
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    JSON.stringify({ name: "root", private: true, scripts: { typecheck: "node -e process.exit(1)", test: "node -e process.exit(1)" } })
+  );
+  fs.mkdirSync(path.join(root, "src"));
+  fs.writeFileSync(path.join(root, "src", "app.ts"), "export const b = 1;\n");
+  const dir = path.join(root, "nest");
+  fs.mkdirSync(dir);
   const scripts = { test: "node check.js test" };
   if (withTypecheck) scripts.typecheck = "node check.js typecheck";
   const pkg = { name: "fixture", private: true, scripts };
@@ -36,18 +46,18 @@ function makeFixture({ withTypecheck = true, withDeps = false } = {}) {
   fs.writeFileSync(path.join(dir, "check.js"), CHECK_SCRIPT);
   fs.mkdirSync(path.join(dir, "src"));
   fs.writeFileSync(path.join(dir, "src", "index.ts"), "export const a: number = 1;\n");
-  const git = (...args) => spawnSync("git", args, { cwd: dir, encoding: "utf8" });
+  const git = (...args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
   git("init", "-q");
   git("add", ".");
   git("-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-qm", "init");
-  return { dir, state: path.join(dir, ".git", "verify-gate-state.json") };
+  return { root, dir, state: path.join(root, ".git", "verify-gate-state.json") };
 }
 
 function runHook(fx, event) {
   const result = spawnSync(process.execPath, [HOOK], {
     input: typeof event === "string" ? event : JSON.stringify(event),
     encoding: "utf8",
-    env: { ...process.env, CLAUDE_PROJECT_DIR: fx.dir, VERIFY_GATE_STATE_FILE: fx.state },
+    env: { ...process.env, CLAUDE_PROJECT_DIR: fx.root, VERIFY_GATE_STATE_FILE: fx.state },
   });
   let json = null;
   try {
@@ -109,7 +119,7 @@ test("typecheck fails: blocks with command and output, test still runs", () => {
   expect(r.status === 0 && isBlock(r), `expected block, got ${JSON.stringify(r.json)}`);
   expect(r.json.reason.includes("`npm run typecheck`"), "reason names the failed command");
   expect(r.json.reason.includes("error TS2322"), "reason carries the error output");
-  expect(/`npm test` in \.: passed/.test(r.json.reason), "reason reports the test result");
+  expect(/`npm test` in nest: passed/.test(r.json.reason), "reason reports the test result");
   expect(runs(fx).join(",") === "typecheck,test", `runs: ${runs(fx)}`);
 });
 
@@ -199,6 +209,13 @@ test("dependencies declared but node_modules missing: reported, nothing run", ()
   const r = runHook(fx, stop());
   expect(!isBlock(r) && /node_modules missing/.test(r.json.systemMessage), JSON.stringify(r.json));
   expect(runs(fx).length === 0, `runs: ${runs(fx)}`);
+});
+
+test("Express (root) source change does not trigger", () => {
+  const fx = makeFixture();
+  fs.writeFileSync(path.join(fx.root, "src", "app.ts"), "export const b: number = 'x';\n");
+  const r = runHook(fx, stop());
+  expect(r.json === null && runs(fx).length === 0, `expected silent allow, got ${JSON.stringify(r.json)}`);
 });
 
 test("change outside checked paths (docs) does not trigger", () => {

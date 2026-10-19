@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Stop hook: verification gate. Before Claude finishes, runs `npm run typecheck`
-// and `npm test` in each package (Express app at the root, NestJS app in nest/)
-// whose source changed, and blocks the stop if either command fails.
+// Stop hook: verification gate for the NestJS app in nest/. Before Claude
+// finishes, runs `npm run typecheck` and `npm test` there when its source
+// changed, and blocks the stop if either command fails. The Express app at the
+// root is not checked (owner's choice).
 //
 // - A package is checked when its relevant files differ from the last state
 //   checked here without failures, or, with no record yet, when git shows
@@ -35,7 +36,7 @@ const STATE_FILE =
     `claude-verify-gate-${crypto.createHash("sha1").update(PROJECT_DIR).digest("hex").slice(0, 12)}.json`
   );
 const MAX_BLOCKS = 3;
-const COMMAND_TIMEOUT_MS = 4 * 60 * 1000; // 2 packages x 2 checks stay under the 1200 s hook timeout
+const COMMAND_TIMEOUT_MS = 4 * 60 * 1000; // 2 checks stay well under the 1200 s hook timeout
 const OUTPUT_TAIL_LINES = 60;
 const OUTPUT_TAIL_CHARS = 5000;
 const CHECKS = [
@@ -43,13 +44,8 @@ const CHECKS = [
   { script: "test", args: ["test"] },
 ];
 
-// Files that can change the result of typecheck or test, per package.
+// Files that can change the result of typecheck or test, per checked package.
 const PACKAGES = [
-  {
-    name: "Express (root)",
-    dir: ".",
-    paths: ["src", "test", "tsconfig.json", "jest.config.js", "package.json", "package-lock.json"],
-  },
   {
     name: "NestJS (nest/)",
     dir: "nest",

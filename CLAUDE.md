@@ -121,10 +121,10 @@ Full list with file references: inventory doc, section "Known issues".
   category writes). Never carry that behavior into NestJS without a decision recorded in `decisions.md`.
 - Hook `protect-env` (`.claude/settings.json`) blocks Claude's file tools and Bash commands that name
   `.env` files. It reduces accidental exposure; it is not a guarantee. Test: `node .claude/hooks/protect-env.test.js`.
-- Stop hook `verify-gate` (`.claude/settings.json`) runs `npm run typecheck` and `npm test` in each package (root, `nest/`)
-  whose `src/`, `test/` or config changed, and blocks Claude from finishing while either fails. After 3 blocks, or a
-  re-stop with no relevant change, it lets Claude stop with a "NOT verified" warning. The root has no `typecheck`
-  script, so root types are reported as not checked. Test: `node .claude/hooks/verify-gate.test.js`.
+- Stop hook `verify-gate` (`.claude/settings.json`) runs `npm run typecheck` and `npm test` in `nest/` when its
+  `src/`, `test/` or config changed, and blocks Claude from finishing while either fails. After 3 blocks, or a
+  re-stop with no relevant change, it lets Claude stop with a "NOT verified" warning. The Express app at the root is
+  not checked by the gate. Test: `node .claude/hooks/verify-gate.test.js`.
 
 ## Long-term goal: Express -> NestJS
 
