@@ -6,4 +6,4 @@ behavior; "Differences" lists every known difference, accepted or not. Security 
 
 | Endpoint | Express test | NestJS test | Status | Differences | Flags |
 | --- | --- | --- | --- | --- | --- |
-| `GET /categories` | — | — | Planned (workflow demo) | — | None |
+| `GET /categories` | `test/categories.list.test.ts` | — | Characterized in Express; not migrated | — | None |
