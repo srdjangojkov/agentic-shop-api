@@ -7,7 +7,8 @@ read it before planning any migration or behavior change.
 ## Project
 
 REST API for a small shop (users, categories, products with images, coupons, search).
-Single package, no monorepo, no frontend.
+The Express app is the root package (port 3002). The NestJS migration target is a separate package in
+`nest/` (port 3003) with its own dependencies, scripts and tests. No frontend.
 
 Stack (versions from `package-lock.json`):
 
@@ -24,7 +25,10 @@ Stack (versions from `package-lock.json`):
 Layered Express app, one file per resource in each layer:
 
 ```
-src/app.ts         entry point: middleware, router mounting, DB connect, listen, Swagger
+src/app.ts         entry point: DB connect, listen, Swagger (calls createApp)
+src/create-app.ts  createApp(): middleware, router mounting, GET / (no DB, no listen; used by tests)
+test/              Jest + Supertest tests against an isolated in-memory MongoDB
+nest/              separate NestJS app (migration target, port 3003); see nest/CLAUDE.md
 src/routes/        Express Routers + @swagger JSDoc blocks
 src/validators/    express-validator chains per route; db-validators.ts = DB-backed checks
 src/controllers/   (req, res) handlers: call service, map result to HTTP status/JSON
@@ -61,8 +65,9 @@ Only these exist in `package.json`. `node_modules` is not committed; `npm instal
 | --- | --- |
 | `npm install` | Installs dependencies. |
 | `npm run dev` | Runs `nodemon ./src/app.ts` (via `ts-node`). Verified 2026-10-19: server starts, `GET /` and `/docs` return 200. Needs a reachable MongoDB: without one, data routes return 400 after 10 s and the process crashes once the connect attempt fails. |
-| `npm test` | Placeholder: prints "Error: no test specified" and exits 1. **There are no tests.** |
+| `npm test` | Runs Jest (`test/`) against a throwaway MongoDB from `mongodb-memory-server-core`; never uses `DB_URI`. First run downloads a MongoDB binary; set `MONGOMS_SYSTEM_BINARY=/path/to/mongod` to use an existing one. Verified 2026-10-19 in the cloud environment (2/2 pass). |
 | `npx tsc --noEmit` | Not a script, but `typescript` is a devDependency. Passes (verified 2026-10-19). Use it as the type-check. |
+| `cd nest && npm ci && npm run typecheck && npm test` | NestJS app checks; see `nest/CLAUDE.md`. Root `tsc` excludes `nest/`. |
 
 There is no build, start, lint, or format script. Copy `.env.example` to `.env` for local setup. Environment variables read by
 the code: `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME`, `CLOUDINARY_KEY`,
@@ -76,7 +81,10 @@ the code: `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME
 | `npm run dev` startup, `GET /`, `GET /docs` | Server starts; both return 200 | Claude, cloud environment (no DB) |
 | MongoDB Atlas connection | Connects | Owner, local machine |
 | App responds at `http://localhost:3002` | Responds | Owner, local machine |
-| Individual endpoints and features (CRUD, auth, uploads, search, Cloudinary) | **Not verified** | No tests exist; nothing beyond the above was exercised |
+| `GET /categories` | Characterized by `test/categories.list.test.ts` (3 tests pass) | Claude, cloud environment, isolated DB |
+| NestJS `GET /categories` on 3003 | `nest/test/categories.list.test.ts` (3 tests pass); same body as Express side by side, see `parity.md` | Claude, cloud environment, isolated DB |
+| Express on port 3002 against an isolated local MongoDB: `GET /`, `/docs`, `/categories` | All 200 | Claude, cloud environment |
+| All other endpoints and features (CRUD, auth, uploads, search, Cloudinary) | **Not verified** | No tests yet |
 
 A response at `http://localhost:3002` only shows the server is up and connected. It does not confirm that any
 endpoint behaves correctly; treat endpoint behavior as unverified until tests cover it.
@@ -85,7 +93,7 @@ endpoint behaves correctly; treat endpoint behavior as unverified until tests co
 
 - **No authentication on any write route.** The `checkJWT` versions of category/user POST/PUT/DELETE are
   commented out; products and coupons never had it. Swagger still marks some as `bearerAuth`.
-- No tests, no CI, no lint, no build output config (`tsconfig.json` has no `outDir`/`include`).
+- Tests cover only `GET /categories` (both apps). No CI, no lint, no build output config (`tsconfig.json` has no `outDir`/`include`).
 - Async handlers are not wrapped; errors thrown outside `try` (e.g. `createUser`, `createProduct`
   without a file, all `search` branches) are unhandled rejections in Express 4. No global error/404 handler.
 - Port defaults to `30001` in `app.ts` when `PORT` is unset; README and `.env.example` use 3002.
@@ -97,9 +105,23 @@ endpoint behaves correctly; treat endpoint behavior as unverified until tests co
 
 Full list with file references: inventory doc, section "Known issues".
 
+## Workflow
+
+- Non-trivial changes and migration slices go through the `feature-workflow` skill
+  (`.claude/skills/feature-workflow/SKILL.md`): explore, plan and wait for approval, test first, implement,
+  review, record, PR.
+- It uses Matt Pocock's `mattpocock-skills:tdd` and `mattpocock-skills:code-review` skills (plugin
+  `mattpocock-skills@mattpocock`) and the read-only `reviewer` agent (`.claude/agents/reviewer.md`).
+- Decisions and open questions: `docs/ai-workflow/decisions.md`. Migrated endpoints and their differences:
+  `docs/ai-workflow/parity.md`.
+- **Security flags S1–S7 and the authorization policy (A1) are open.** Never carry that behavior into
+  NestJS without a decision recorded in `decisions.md`.
+- Hook `protect-env` (`.claude/settings.json`) blocks Claude's file tools and Bash commands that name
+  `.env` files. It reduces accidental exposure; it is not a guarantee. Test: `node .claude/hooks/protect-env.test.js`.
+
 ## Long-term goal: Express -> NestJS
 
-The repository will be migrated incrementally to NestJS. No NestJS code exists yet.
+The repository will be migrated incrementally to NestJS, in the separate app in `nest/` (NestJS 11).
 
 Migration principles:
 

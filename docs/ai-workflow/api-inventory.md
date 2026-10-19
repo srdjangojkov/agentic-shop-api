@@ -380,17 +380,22 @@ Documented vs. actual, confirmed from the JSDoc text:
 
 ## 8. Tooling and build
 
-- Scripts: `dev` (`nodemon ./src/app.ts`, nodemon is a devDependency since `2120abe`) and a placeholder `test`. No `build`, `start`, `lint`, or `format`.
+- Scripts: `dev` (`nodemon ./src/app.ts`, nodemon is a devDependency since `2120abe`) and `test` (Jest). No `build`, `start`, `lint`, or `format`.
 - `tsconfig.json`: `strict`, `commonjs`, `es2016`, `esModuleInterop`, `skipLibCheck`. No `outDir`,
   `rootDir` or `include`, so `tsc` would emit `.js` next to the sources. `experimentalDecorators` and
   `emitDecoratorMetadata` are off (NestJS needs both).
 - `@types/mongoose` 5.x is installed alongside Mongoose 7, which ships its own types. **Unknown:** whether it
   causes type conflicts.
-- No tests, test framework, CI config, ESLint, Prettier or editorconfig. No Dockerfile or compose file.
+- Separate NestJS 11 app in `nest/` (own `package.json`, port 3003); root `tsconfig.json` excludes it.
+- Jest + Supertest + `mongodb-memory-server-core` tests in `test/` (only `GET /categories` so far; `nest/test/` mirrors them for the NestJS app). App creation lives in `src/create-app.ts`, separate from DB connect and listen in `src/app.ts`. No CI config, ESLint, Prettier or editorconfig. No Dockerfile or compose file.
 
 ---
 
 ## 9. Known issues (confirmed unless labeled)
+
+Security-sensitive items are tracked as open decisions in [`decisions.md`](decisions.md): item 2 = S3/A1,
+item 3 = S6, item 4 = S1, item 5 = S2, item 6 = S5, item 10 = S7; S4 (admin role on `POST /users`) is in section 5, Users. They must not be carried into
+NestJS without a recorded decision.
 
 Documented here only; only item 1 has been fixed.
 
@@ -406,7 +411,7 @@ Documented here only; only item 1 has been fixed.
 10. Unescaped user regex in search (ReDoS / throw).
 11. Cloudinary assets orphaned on failed create, update and delete.
 12. Login succeeds for soft-deleted users; get-by-id returns soft-deleted records.
-13. Default port `30001` vs. README's 3002; `npm test` always fails (nodemon added in `2120abe`).
+13. Default port `30001` vs. README's 3002 (nodemon added in `2120abe`; `npm test` runs Jest since the test baseline).
 14. Swagger inaccuracies listed in section 7.
 15. Validator message "min length 8" for a min-length-2 check; error code typo `ERORR_DELETE_USER`.
 16. With MongoDB unreachable the server starts, `GET /categories` returns `400 { errors: "ERROR_GET_CATEGORIES" }` after Mongoose's 10 s buffering timeout, and the process then exits on the unhandled `MongooseServerSelectionError` from `db()` (verified 2026-10-19).
@@ -419,8 +424,8 @@ General:
 
 - Characterization tests against the current Express app (e.g. supertest + an in-memory or test MongoDB)
   should come first, so each migrated module can be compared to the original responses, quirks included.
-- Decide early whether NestJS runs as a separate app or mounts on the existing Express instance
-  (`@nestjs/platform-express` with an adapter) to allow module-by-module cutover. **Open decision.**
+- NestJS runs as a separate app in `nest/` on port 3003 (decided 2026-10-19, see `decisions.md`).
+  `GET /categories` is the first migrated endpoint; status per endpoint is in `parity.md`.
 - `tsconfig` needs `experimentalDecorators` and `emitDecoratorMetadata`, plus an `outDir`.
 - Error shapes (`{ errors: CODE }`, `{ msg: ... }`, express-validator objects) and the "400 for everything"
   behavior must be reproduced with exception filters if behavior is preserved.
