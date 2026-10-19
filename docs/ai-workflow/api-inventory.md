@@ -392,6 +392,10 @@ Documented vs. actual, confirmed from the JSDoc text:
 
 ## 9. Known issues (confirmed unless labeled)
 
+Security-sensitive items are tracked as open decisions in [`decisions.md`](decisions.md): item 2 = S3/A1,
+item 3 = S6, item 4 = S1, item 5 = S2, item 6 = S5, item 10 = S7; S4 (admin role on `POST /users`) is in section 5, Users. They must not be carried into
+NestJS without a recorded decision.
+
 Documented here only; only item 1 has been fixed.
 
 1. ~~`middleware/session.ts` imports non-existent `verifyToken`~~ Fixed in `2120abe`.

@@ -97,6 +97,20 @@ endpoint behaves correctly; treat endpoint behavior as unverified until tests co
 
 Full list with file references: inventory doc, section "Known issues".
 
+## Workflow
+
+- Non-trivial changes and migration slices go through the `feature-workflow` skill
+  (`.claude/skills/feature-workflow/SKILL.md`): explore, plan and wait for approval, test first, implement,
+  review, record, PR.
+- It uses Matt Pocock's `mattpocock-skills:tdd` and `mattpocock-skills:code-review` skills (plugin
+  `mattpocock-skills@mattpocock`) and the read-only `reviewer` agent (`.claude/agents/reviewer.md`).
+- Decisions and open questions: `docs/ai-workflow/decisions.md`. Migrated endpoints and their differences:
+  `docs/ai-workflow/parity.md`.
+- **Security flags S1–S7 and the authorization policy (A1) are open.** Never carry that behavior into
+  NestJS without a decision recorded in `decisions.md`.
+- Hook `protect-env` (`.claude/settings.json`) blocks Claude's file tools and Bash commands that name
+  `.env` files. It reduces accidental exposure; it is not a guarantee. Test: `node .claude/hooks/protect-env.test.js`.
+
 ## Long-term goal: Express -> NestJS
 
 The repository will be migrated incrementally to NestJS. No NestJS code exists yet.
