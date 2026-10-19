@@ -23,6 +23,7 @@ before any change relies on them.
 | 2026-10-19 | `jsonwebtoken` ^9 (+ `@types/jsonwebtoken`) added to `nest/`. | Owner-approved; same library and major as the Express app. |
 | 2026-10-19 | Any valid token may write categories; no role check. | A1 is still open; roles are not invented. |
 | 2026-10-19 | Category endpoints in NestJS keep the Express error contract: validation failures `400 { errors: [ { type, value, msg, path, location } ] }`, other failures `400 { errors: "ERROR_<ACTION>_CATEGORY" }`, not-found as 400. No `class-validator` dependency: `CategoriesValidation` mirrors the chains. | Parity first; no new dependency needed. |
+| 2026-10-19 | Stop-hook verification gate `verify-gate` added (owner request), replacing the earlier "no Stop gate yet" choice. It uses only the existing `typecheck`/`test` scripts; missing scripts or `node_modules` are reported, not blocked on; at most 3 consecutive blocks. | Owner asked for an automated gate; limits keep it from trapping a session. |
 | 2026-10-19 | Plan step of `feature-workflow` expanded: reads the project docs first, uses `mattpocock-skills:codebase-design` for module/seam changes and `mattpocock-skills:grill-with-docs` for ambiguous behavior, and follows a fixed plan template. | Owner request after the `GET /categories` demo. |
 
 ## Open (owner decides)
