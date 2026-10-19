@@ -13,7 +13,7 @@ async function bootstrap() {
 
   const jwtSecret = process.env.SECRET_JWT;
   if (!jwtSecret) {
-    throw new Error("SECRET_JWT is not set. Use the same value as the Express app so its access tokens verify.");
+    throw new Error("SECRET_JWT is not set. Add it to nest/.env with the same value as the Express app so its access tokens verify.");
   }
 
   const app = await NestFactory.create(AppModule.forRoot(mongoUri, jwtSecret));

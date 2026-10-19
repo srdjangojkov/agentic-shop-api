@@ -7,10 +7,10 @@ behavior; "Differences" lists every known difference, accepted or not. Security 
 | Endpoint | Express test | NestJS test | Status | Differences | Flags |
 | --- | --- | --- | --- | --- | --- |
 | `GET /categories` | `test/categories.list.test.ts` | `nest/test/categories.list.test.ts` | Migrated; parity verified 2026-10-19 (cloud, then by the owner locally) | Body identical. Error response identical (`400 { errors: "ERROR_GET_CATEGORIES" }`); Express also `console.log`s the raw error, NestJS does not. Headers differ only app-wide (below). | None (A1 open: endpoint stays public) |
-| `GET /categories/:id` | `test/categories.get.test.ts` | `nest/test/categories.get.test.ts` | Migrated; parity verified 2026-10-19 (cloud) | None in body or status: soft-deleted categories readable, not-found and invalid id are `400` validation entries (2 for an invalid id). | None (A1 open: stays public) |
-| `POST /categories` | `test/categories.create.test.ts` | `nest/test/categories.create.test.ts`, `nest/test/categories.auth.test.ts` | Migrated 2026-10-19 (cloud) | **Auth:** NestJS requires a JWT (`401 { msg: "INVALID_SESSION" }`), Express is public (S3). **S8:** object/array `name` is `400 [Invalid value on name]` in NestJS; Express uses it as a query operator (`400 "[object Object] already exists"`) or fails the create (`ERROR_CREATE_CATEGORY`). `name` only in the query string: NestJS `400` 2 × `Invalid value`, Express `400 ERROR_CREATE_CATEGORY`. Everything else identical (201 body, duplicate/missing/empty/`null`, `123` stored as `"123"`). The `CATEGORY_ALREADY_EXISTS` sentinel (race only) is mirrored but untested. | S3 decided, S8 |
+| `GET /categories/:id` | `test/categories.get.test.ts` | `nest/test/categories.get.test.ts` | Migrated; parity verified 2026-10-19 (cloud) | Only field locations (below). Otherwise identical: soft-deleted categories readable, not-found and invalid id are `400` validation entries (2 for an invalid id). | None (A1 open: stays public) |
+| `POST /categories` | `test/categories.create.test.ts` | `nest/test/categories.create.test.ts`, `nest/test/categories.auth.test.ts` | Migrated 2026-10-19 (cloud) | **Auth:** NestJS requires a JWT (`401 { msg: "INVALID_SESSION" }`), Express is public (S3). **S8:** object/array `name` is `400 [Invalid value on name]` in NestJS; Express uses it as a query operator (`400 "[object Object] already exists"`) or fails the create (`ERROR_CREATE_CATEGORY`). `name` only in the query string: NestJS `400` 2 × `Invalid value`, Express `400 ERROR_CREATE_CATEGORY`. Field locations differ (below). Everything else identical (201 body, duplicate/missing/empty/`null`, `123` stored as `"123"`). The `CATEGORY_ALREADY_EXISTS` sentinel (race only) is mirrored but untested. | S3 decided, S8 |
 | `PUT /categories/:id` | `test/categories.update.test.ts` | `nest/test/categories.update.test.ts`, `nest/test/categories.auth.test.ts` | Migrated 2026-10-19 (cloud) | **Auth:** as POST. **S8:** NestJS applies only `name` and `status`; Express applies the whole body including `$unset`/`$set`. Object/array `name`: NestJS `400 [Invalid value on name]`, Express `400 [CastError on id]`. Kept: `status` changeable (soft-delete/restore via PUT), `name: ""` stored, duplicate reported on `id`, 3 entries for an invalid id. | S3 decided, S8 |
-| `DELETE /categories/:id` | `test/categories.delete.test.ts` | `nest/test/categories.delete.test.ts`, `nest/test/categories.auth.test.ts` | Migrated 2026-10-19 (cloud) | **Auth:** as POST. Otherwise identical: soft delete, `200` again on an already deleted category. | S3 decided |
+| `DELETE /categories/:id` | `test/categories.delete.test.ts` | `nest/test/categories.delete.test.ts`, `nest/test/categories.auth.test.ts` | Migrated 2026-10-19 (cloud) | **Auth:** as POST. Field locations differ (below). Otherwise identical: soft delete, `200` again on an already deleted category. | S3 decided |
 
 How `GET /categories` parity was checked: both test files assert the same three cases (empty list,
 active-only with exact fields, query failure). Both apps were then run side by side (3002 and 3003) against
@@ -27,6 +27,17 @@ deleted, list); after replacing generated ids and timestamps, all 17 status code
 identical (NestJS calls carried a token). NestJS `POST` without a token returned `401 {"msg":"INVALID_SESSION"}`,
 and an access token issued by Express `POST /auth/login` (same `SECRET_JWT`) was accepted by NestJS.
 A mutation check (dropping the HS256 pin) failed the HS512 cases. Not yet checked by the owner locally.
+
+Field locations: Express `check("id")` / `check("name")` validate the field wherever it appears (params, body,
+query, cookies, headers). NestJS reads `id` from the route and `name` from the body only. So an extra
+`id` in the body or query (e.g. `PUT /categories/<valid>?id=bad`) adds entries and a `400` in Express but is
+ignored in NestJS, and a `name` header or cookie on `POST` behaves like the query-string case above. Not
+mirrored on purpose. Pinned by the "Express only" / "NestJS differs" cases in the create and delete tests
+(Express: `?name=` next to a valid body name is `400` on `location: "query"`; a body `id: "abc"` on DELETE is
+`400` and nothing is deleted. NestJS: `201` and `200`).
+
+Race only (validation passed, then the document vanished): Express responds `200` with body `null`, NestJS
+`200` with an empty body. Not tested.
 
 Not covered by tests: the `ERROR_*_CATEGORY` handler branches after validation passed (reachable only on
 a race or a DB failure between the validator and the write), and the `CATEGORY_ALREADY_EXISTS` sentinel.

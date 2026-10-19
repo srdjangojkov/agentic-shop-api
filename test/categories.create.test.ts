@@ -103,6 +103,15 @@ describe("POST /categories", () => {
       expect(res.body).toEqual({ errors: "ERROR_CREATE_CATEGORY" });
     });
 
+    it("also validates a name in the query string next to a valid body name", async () => {
+      const res = await request(app).post("/categories?name=").send({ name: "Longboard" });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        errors: [{ type: "field", value: "", msg: "Invalid value", path: "name", location: "query" }],
+      });
+    });
+
     it("lets a name in the query string pass validation, then fails the create", async () => {
       jest.spyOn(console, "log").mockImplementationOnce(() => undefined);
 

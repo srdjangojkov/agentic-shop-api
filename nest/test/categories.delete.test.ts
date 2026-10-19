@@ -99,4 +99,15 @@ describe("DELETE /categories/:id", () => {
       expect(res.body.errors[0].msg).toEqual(expect.any(String));
     });
   });
+
+  describe("NestJS differs from Express (parity.md)", () => {
+    it("reads the id from the route only and ignores an id in the body", async () => {
+      const id = await insertCategory({ name: "Longboard" });
+
+      const res = await request(app.getHttpServer()).delete(`/categories/${id}`).set("Authorization", authHeader()).send({ id: "abc" });
+
+      expect(res.status).toBe(200);
+      expect(await stored(id)).toMatchObject({ status: false });
+    });
+  });
 });

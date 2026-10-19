@@ -77,4 +77,16 @@ describe("DELETE /categories/:id", () => {
       expect(res.body.errors[0].msg).toEqual(expect.any(String));
     });
   });
+
+  describe("Express only (not carried to NestJS, see parity.md)", () => {
+    it("also validates an id sent in the body, and then deletes nothing", async () => {
+      const category = await CategoryModel.create({ name: "Longboard" });
+
+      const res = await request(app).delete(`/categories/${category._id}`).send({ id: "abc" });
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors.map((e: { location: string }) => e.location)).toEqual(["body", "body"]);
+      expect(await CategoryModel.findById(category._id).lean()).toMatchObject({ status: true });
+    });
+  });
 });

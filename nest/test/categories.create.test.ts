@@ -117,6 +117,13 @@ describe("POST /categories", () => {
       expect(await categories().countDocuments()).toBe(1);
     });
 
+    it("ignores a name in the query string next to a valid body name", async () => {
+      const res = await request(app.getHttpServer()).post("/categories?name=").set("Authorization", authHeader()).send({ name: "Longboard" });
+
+      expect(res.status).toBe(201);
+      expect(res.body.name).toBe("Longboard");
+    });
+
     it("reads the name from the body only", async () => {
       const res = await request(app.getHttpServer()).post("/categories?name=Longboard").set("Authorization", authHeader()).send({});
 
