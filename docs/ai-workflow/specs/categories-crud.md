@@ -3,7 +3,7 @@
 Owner request 2026-10-19 (project thread "Categories CRUD"): `GET /categories/:id`, `POST /categories`,
 `PUT /categories/:id`, `DELETE /categories/:id`. Same workflow and layout as `get-categories.md`.
 
-**Status:** plan. S3 (no auth on writes) is open; see "Security flags".
+**Status:** implemented and verified 2026-10-19 (cloud). S3 decided by the owner: writes require a JWT in NestJS. Results: `parity.md`.
 
 ## Current behavior (Express, observed)
 
@@ -59,7 +59,7 @@ Extend `nest/src/categories/` only: no new module, no new dependency.
   errors throw `BadRequestException({ errors: [...] })`; service failures throw
   `BadRequestException({ errors: "ERROR_<ACTION>_CATEGORY" })`.
 
-## Contract changes (proposed, all keep status 400)
+## Contract changes (1-4 keep status 400)
 
 1. `name` that is an object or array (POST, PUT) is rejected as a validation error
    `{ value, msg: "Invalid value", path: "name", location: "body" }` before any DB query. Express used it as
@@ -69,6 +69,7 @@ Extend `nest/src/categories/` only: no new module, no new dependency.
 3. POST reads `name` from the body only (Express also accepted it from query, headers and cookies, which then
    failed with `ERROR_CREATE_CATEGORY`). Same status, different body.
 4. No `console.log` of raw errors (same as `GET /categories`).
+5. POST, PUT and DELETE require a JWT (S3, owner decision).
 
 Kept on purpose (quirks, recorded in `parity.md`): 400 instead of 404, duplicated CastError entries,
 soft-deleted categories readable and blocking their name, `"  "`/`123` accepted, PUT may set `status` and
@@ -76,17 +77,19 @@ soft-deleted categories readable and blocking their name, `"  "`/`123` accepted,
 
 ## Security flags
 
-- **S3** (no authentication on writes) applies to POST, PUT, DELETE. Open; the owner decides. Work proceeds
-  provisionally with the endpoints public, as in Express, recorded as provisional until decided.
-- **A1** stays open. `GET /:id` stays public like `GET /categories`.
+- **S3** (no authentication on writes) applies to POST, PUT, DELETE. Owner decided 2026-10-19: NestJS
+  requires a valid access token (`JwtAuthGuard`, mirrors `checkJWT`, `401 { msg: "INVALID_SESSION" }`).
+  S6 defaults: `SECRET_JWT` required, no fallback, HS256 pinned. `jsonwebtoken` ^9 added (owner-approved).
+- **A1** stays open. `GET /:id` stays public like `GET /categories`; any valid token may write.
 - **S8 (new):** mass assignment and operator injection on categories (raw PUT body to `findByIdAndUpdate`,
   object `name` in `findOne`). Not copied (changes 1 and 2).
 
 ## Test strategy (seam: HTTP)
 
-- Express: `test/categories.crud.test.ts` pins the table above (success, not found, invalid id, invalid and
+- Express: `test/categories.{get,create,update,delete}.test.ts` pin the table above (success, not found, invalid id, invalid and
   duplicate `name`, soft-delete, DB unreachable). Passes against unchanged Express.
-- NestJS: `nest/test/categories.crud.test.ts`, same cases; differs only where a contract change is listed.
+- NestJS: `nest/test/categories.{get,create,update,delete}.test.ts`, same cases; differs only where a contract
+  change is listed. `nest/test/categories.auth.test.ts` covers the guard.
   Written before the code; must fail first (404 from Nest's router).
 - Isolated DBs only: `test/helpers/test-db.ts`, `nest/test/test-db.ts`. Fixtures are inserted per test; no
   assertions on generated ids or timestamps beyond format.
