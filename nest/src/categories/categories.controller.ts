@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Param } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Post } from "@nestjs/common";
 import { CategoriesService } from "./categories.service";
 import { CategoriesValidation, FieldError } from "./categories.validation";
 
@@ -34,5 +34,20 @@ export class CategoriesController {
     } catch {
       throw new BadRequestException({ errors: "ERROR_GET_CATEGORY" });
     }
+  }
+
+  @Post()
+  async createCategory(@Body() body: { name?: unknown }) {
+    rejectInvalid(await this.validation.validateCreate(body?.name));
+    let category;
+    try {
+      category = await this.categoriesService.createCategory(body.name as string);
+    } catch {
+      throw new BadRequestException({ errors: "ERROR_CREATE_CATEGORY" });
+    }
+    if (category === "CATEGORY_ALREADY_EXISTS") {
+      throw new BadRequestException({ msg: "CATEGORY_ALREADY_EXISTS" });
+    }
+    return category;
   }
 }

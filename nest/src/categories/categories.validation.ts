@@ -21,6 +21,13 @@ const INVALID_VALUE = "Invalid value";
 const isMongoId = (value: unknown) => typeof value === "string" && /^[0-9a-fA-F]{24}$/.test(value);
 
 const paramError = (value: unknown, msg: string): FieldError => ({ type: "field", value, msg, path: "id", location: "params" });
+const nameError = (value: unknown, msg: string): FieldError => ({ type: "field", value, msg, path: "name", location: "body" });
+
+// express-validator's toString for the notEmpty check.
+const asString = (value: unknown) => (value === undefined || value === null ? "" : String(value));
+
+// Objects and arrays never reach a query: Express used them as query operators (S8, parity.md).
+const isStructured = (value: unknown) => typeof value === "object" && value !== null;
 
 @Injectable()
 export class CategoriesValidation {
@@ -31,6 +38,17 @@ export class CategoriesValidation {
     const errors: FieldError[] = [];
     if (!isMongoId(id)) errors.push(paramError(id, INVALID_VALUE));
     await this.check(errors, paramError.bind(null, id), () => this.categoryIdExists(id));
+    return errors;
+  }
+
+  // POST: check("name").exists().not().isEmpty().custom(categoryExists), body only.
+  async validateCreate(name: unknown): Promise<FieldError[]> {
+    if (isStructured(name)) return [nameError(name, INVALID_VALUE)];
+
+    const errors: FieldError[] = [];
+    if (name === undefined) errors.push(nameError(name, INVALID_VALUE));
+    if (asString(name) === "") errors.push(nameError(name, INVALID_VALUE));
+    await this.check(errors, nameError.bind(null, name), () => this.categoryExists(name));
     return errors;
   }
 
@@ -47,6 +65,13 @@ export class CategoriesValidation {
     const category = await this.categoryModel.findById(id);
     if (!category) {
       throw new Error(`Category id: ${id} doesn't exist`);
+    }
+  }
+
+  private async categoryExists(name: unknown) {
+    const category = await this.categoryModel.findOne({ name });
+    if (category) {
+      throw new Error(`${name} already exists`);
     }
   }
 }

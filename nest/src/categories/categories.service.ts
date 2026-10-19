@@ -14,4 +14,12 @@ export class CategoriesService {
   getCategory(id: string) {
     return this.categoryModel.findById(id);
   }
+
+  // Returns the sentinel when the name is taken, like the Express service.
+  async createCategory(name: string) {
+    const categoryExists = await this.categoryModel.findOne({ name });
+    if (categoryExists) return "CATEGORY_ALREADY_EXISTS";
+
+    return this.categoryModel.create({ name });
+  }
 }
