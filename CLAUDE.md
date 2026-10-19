@@ -82,10 +82,11 @@ the code: `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME
 | MongoDB Atlas connection | Connects | Owner, local machine |
 | App responds at `http://localhost:3002` | Responds | Owner, local machine |
 | `GET /categories` | Characterized by `test/categories.list.test.ts` (3 tests pass) | Claude, cloud environment, isolated DB |
+| `GET/POST/PUT/DELETE /categories[/:id]` | Characterized by `test/categories.{get,create,update,delete}.test.ts`; NestJS mirrors in `nest/test/` plus `categories.auth.test.ts`; side by side 17/17 identical, see `parity.md` | Claude, cloud environment, isolated DB |
 | NestJS `GET /categories` on 3003 | `nest/test/categories.list.test.ts` (3 tests pass); same body as Express side by side, see `parity.md` | Claude, cloud environment, isolated DB |
 | Root and `nest/` test suites; both apps side by side (3002, 3003) with `GET /categories` compared | Verified | Owner, local machine |
 | Express on port 3002 against an isolated local MongoDB: `GET /`, `/docs`, `/categories` | All 200 | Claude, cloud environment |
-| All other endpoints and features (CRUD, auth, uploads, search, Cloudinary) | **Not verified** | No tests yet |
+| All other endpoints and features (users, products, coupons, auth, uploads, search, Cloudinary) | **Not verified** | No tests yet |
 
 A response at `http://localhost:3002` only shows the server is up and connected. It does not confirm that any
 endpoint behaves correctly; treat endpoint behavior as unverified until tests cover it.
@@ -94,7 +95,7 @@ endpoint behaves correctly; treat endpoint behavior as unverified until tests co
 
 - **No authentication on any write route.** The `checkJWT` versions of category/user POST/PUT/DELETE are
   commented out; products and coupons never had it. Swagger still marks some as `bearerAuth`.
-- Tests cover only `GET /categories` (both apps). No CI, no lint, no build output config (`tsconfig.json` has no `outDir`/`include`).
+- Tests cover only the `/categories` endpoints (both apps). No CI, no lint, no build output config (`tsconfig.json` has no `outDir`/`include`).
 - Async handlers are not wrapped; errors thrown outside `try` (e.g. `createUser`, `createProduct`
   without a file, all `search` branches) are unhandled rejections in Express 4. No global error/404 handler.
 - Port defaults to `30001` in `app.ts` when `PORT` is unset; README and `.env.example` use 3002.
@@ -116,8 +117,8 @@ Full list with file references: inventory doc, section "Known issues".
   `mattpocock-skills@mattpocock`) and the read-only `reviewer` agent (`.claude/agents/reviewer.md`).
 - Decisions and open questions: `docs/ai-workflow/decisions.md`. Migrated endpoints and their differences:
   `docs/ai-workflow/parity.md`.
-- **Security flags S1–S7 and the authorization policy (A1) are open.** Never carry that behavior into
-  NestJS without a decision recorded in `decisions.md`.
+- **Security flags S1–S8 and the authorization policy (A1) are open** (S3 and S8 are decided only for NestJS
+  category writes). Never carry that behavior into NestJS without a decision recorded in `decisions.md`.
 - Hook `protect-env` (`.claude/settings.json`) blocks Claude's file tools and Bash commands that name
   `.env` files. It reduces accidental exposure; it is not a guarantee. Test: `node .claude/hooks/protect-env.test.js`.
 

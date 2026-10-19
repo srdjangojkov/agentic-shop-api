@@ -82,8 +82,11 @@ hard-coded secret strings when the JWT variables are unset.
 - Each route validator is an array of `check(...)` chains followed by a local `method` that calls
   `validateResult` (`utils/validate.handle.ts`).
 - `validateResult` calls `validationResult(req).throw()` and on failure responds `400` with the thrown
-  object as JSON. **Unknown (not executed):** the exact serialized shape; it is the express-validator 7
-  error object, not the `{ errors: "<CODE>" }` shape used by `handleHttpError`.
+  object as JSON. **Verified 2026-10-19 (category tests):** the body is
+  `{ errors: [ { type: "field", value, msg, path, location } ] }` (`value` omitted when the field is
+  missing), not the `{ errors: "<CODE>" }` shape used by `handleHttpError`. Chains do not bail, so one
+  input can produce several entries, and a DB error inside a custom validator becomes an entry whose `msg`
+  is the raw Mongoose message.
 - `check()` (not `param()`/`body()`) is used everywhere, so a field like `id` is looked up in body,
   cookies, headers, params and query.
 - Existence checks (`*IdExists`) hit the DB inside validators; "not found" therefore surfaces as a
@@ -270,6 +273,21 @@ Notes:
 
 `createCategory` saves only `name`. `updateCategory` passes the whole body to `findByIdAndUpdate`.
 
+**Verified 2026-10-19** by `test/categories.{list,get,create,update,delete}.test.ts` (isolated DB). The
+full case table (status codes, every validation entry, quirks) is in
+[`specs/categories-crud.md`](specs/categories-crud.md). Highlights:
+
+- Validators use `check()`, so `POST` accepts `name` from the query string; it then fails with
+  `400 { errors: "ERROR_CREATE_CATEGORY" }` because the service reads the body.
+- `name` `123`/`true`/`"  "` is stored as a string; `""`, `null` and missing are rejected; an array fails the
+  create (`ERROR_CREATE_CATEGORY`); an object such as `{ "$ne": null }` is used as a query operator in the
+  uniqueness check (**S8**).
+- A taken name (also by a soft-deleted category) is a validation error; on `PUT` it is reported on `id`.
+- `PUT` applies any body key, including `status` (soft-delete or restore) and MongoDB update operators:
+  `{ "$unset": { "status": 1 } }` removed the field (**S8**). `name: ""` is stored.
+- `GET /:id` and `DELETE /:id` work on soft-deleted categories; `DELETE` is idempotent (200 again).
+- An invalid id gives 2 entries (`Invalid value` + CastError message), 3 on `PUT`.
+
 ### Products (`routes/products.ts` → `validators/products.ts` → `controllers/products.ts` → `services/products.ts`)
 
 | Method | Path | Purpose | Auth | Inputs / validation | Responses |
@@ -394,13 +412,14 @@ Documented vs. actual, confirmed from the JSDoc text:
 ## 9. Known issues (confirmed unless labeled)
 
 Security-sensitive items are tracked as open decisions in [`decisions.md`](decisions.md): item 2 = S3/A1,
-item 3 = S6, item 4 = S1, item 5 = S2, item 6 = S5, item 10 = S7; S4 (admin role on `POST /users`) is in section 5, Users. They must not be carried into
+item 3 = S6, item 17 = S8, item 4 = S1, item 5 = S2, item 6 = S5, item 10 = S7; S4 (admin role on `POST /users`) is in section 5, Users. They must not be carried into
 NestJS without a recorded decision.
 
 Documented here only; only item 1 has been fixed.
 
 1. ~~`middleware/session.ts` imports non-existent `verifyToken`~~ Fixed in `2120abe`.
-2. No authentication or authorization on any write endpoint.
+2. No authentication or authorization on any write endpoint. (NestJS requires a JWT on category writes,
+   decided 2026-10-19; Express is unchanged.)
 3. JWT `id` claim contains the email; hard-coded fallback JWT secrets.
 4. Password hash leaked by `POST /users`, `PUT /users/:id`, `DELETE /users/:id` and `search/users`.
 5. `PUT /users/:id` stores passwords unhashed and allows changing `role`/`status`.
@@ -415,6 +434,8 @@ Documented here only; only item 1 has been fixed.
 14. Swagger inaccuracies listed in section 7.
 15. Validator message "min length 8" for a min-length-2 check; error code typo `ERORR_DELETE_USER`.
 16. With MongoDB unreachable the server starts, `GET /categories` returns `400 { errors: "ERROR_GET_CATEGORIES" }` after Mongoose's 10 s buffering timeout, and the process then exits on the unhandled `MongooseServerSelectionError` from `db()` (verified 2026-10-19).
+17. Category writes accept MongoDB operators and object values from the body (`PUT` mass assignment,
+    object `name` as a query operator). Verified 2026-10-19; tracked as S8.
 
 ---
 
@@ -425,7 +446,7 @@ General:
 - Characterization tests against the current Express app (e.g. supertest + an in-memory or test MongoDB)
   should come first, so each migrated module can be compared to the original responses, quirks included.
 - NestJS runs as a separate app in `nest/` on port 3003 (decided 2026-10-19, see `decisions.md`).
-  `GET /categories` is the first migrated endpoint; status per endpoint is in `parity.md`.
+  All five `/categories` endpoints are migrated; status per endpoint is in `parity.md`.
 - `tsconfig` needs `experimentalDecorators` and `emitDecoratorMetadata`, plus an `outDir`.
 - Error shapes (`{ errors: CODE }`, `{ msg: ... }`, express-validator objects) and the "400 for everything"
   behavior must be reproduced with exception filters if behavior is preserved.

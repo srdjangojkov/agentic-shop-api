@@ -3,6 +3,7 @@ import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
+import { TEST_JWT_SECRET } from "./test-app";
 import { startTestDb } from "./test-db";
 
 describe("NestJS app skeleton", () => {
@@ -12,7 +13,7 @@ describe("NestJS app skeleton", () => {
   beforeAll(async () => {
     db = await startTestDb();
     const moduleRef = await Test.createTestingModule({
-      imports: [AppModule.forRoot(db.uri)],
+      imports: [AppModule.forRoot(db.uri, TEST_JWT_SECRET)],
     }).compile();
     app = moduleRef.createNestApplication();
     await app.init();

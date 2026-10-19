@@ -5,6 +5,7 @@ import { Test } from "@nestjs/testing";
 import { Connection } from "mongoose";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
+import { TEST_JWT_SECRET } from "./test-app";
 import { startTestDb } from "./test-db";
 
 // Same expectations as the Express characterization test in ../../test/categories.list.test.ts.
@@ -19,7 +20,7 @@ describe("GET /categories", () => {
   beforeAll(async () => {
     db = await startTestDb();
     const moduleRef = await Test.createTestingModule({
-      imports: [AppModule.forRoot(db.uri)],
+      imports: [AppModule.forRoot(db.uri, TEST_JWT_SECRET)],
     }).compile();
     app = moduleRef.createNestApplication();
     await app.init();
@@ -67,7 +68,7 @@ describe("GET /categories", () => {
     // Disconnected, queries buffer and then time out; a short timeout keeps the failure fast.
     // A separate app on a closed connection, so the shared app and database stay intact.
     const failing = await Test.createTestingModule({
-      imports: [AppModule.forRoot(db.uri)],
+      imports: [AppModule.forRoot(db.uri, TEST_JWT_SECRET)],
     }).compile();
     const failingApp = failing.createNestApplication();
     await failingApp.init();
