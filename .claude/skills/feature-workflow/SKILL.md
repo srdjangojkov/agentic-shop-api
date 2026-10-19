@@ -79,6 +79,7 @@ npx tsc --noEmit                      # Express type-check
 npm test                              # Express tests
 cd nest && npx tsc --noEmit && npm test
 node .claude/hooks/protect-env.test.js
+node .claude/hooks/verify-gate.test.js
 ```
 
 ## 5. Review
