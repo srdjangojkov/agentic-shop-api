@@ -52,6 +52,20 @@ export class CategoriesValidation {
     return errors;
   }
 
+  // PUT: check("id").isMongoId(), check("id").custom(categoryIdExists),
+  // check("id", "name").custom(categoryToChangeExists). Errors are reported on the id.
+  async validateUpdate(id: string, name: unknown): Promise<FieldError[]> {
+    const errors: FieldError[] = [];
+    if (!isMongoId(id)) errors.push(paramError(id, INVALID_VALUE));
+    await this.check(errors, paramError.bind(null, id), () => this.categoryIdExists(id));
+    if (isStructured(name)) {
+      errors.push(nameError(name, INVALID_VALUE));
+    } else {
+      await this.check(errors, paramError.bind(null, id), () => this.categoryToChangeExists(id, name));
+    }
+    return errors;
+  }
+
   // Runs a custom check; a thrown error becomes an entry with its message, as in express-validator.
   private async check(errors: FieldError[], toError: (msg: string) => FieldError, fn: () => Promise<void>) {
     try {
@@ -72,6 +86,13 @@ export class CategoriesValidation {
     const category = await this.categoryModel.findOne({ name });
     if (category) {
       throw new Error(`${name} already exists`);
+    }
+  }
+
+  private async categoryToChangeExists(id: string, name: unknown) {
+    const category = await this.categoryModel.findById(id);
+    if (name !== category?.name) {
+      return this.categoryExists(name);
     }
   }
 }

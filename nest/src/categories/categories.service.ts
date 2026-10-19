@@ -22,4 +22,9 @@ export class CategoriesService {
 
     return this.categoryModel.create({ name });
   }
+
+  // Express passes the whole body; only the schema's own fields are applied here (S8, parity.md).
+  updateCategory(id: string, data: Partial<Category>) {
+    return this.categoryModel.findByIdAndUpdate(id, data, { new: true });
+  }
 }

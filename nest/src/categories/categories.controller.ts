@@ -1,6 +1,7 @@
-import { BadRequestException, Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Post, Put } from "@nestjs/common";
 import { CategoriesService } from "./categories.service";
 import { CategoriesValidation, FieldError } from "./categories.validation";
+import { Category } from "./category.schema";
 
 // Validation failures respond 400 { errors: [...] } and other failures 400 { errors: "<CODE>" },
 // as validateResult and handleHttpError do in Express (decisions.md, parity.md).
@@ -49,5 +50,18 @@ export class CategoriesController {
       throw new BadRequestException({ msg: "CATEGORY_ALREADY_EXISTS" });
     }
     return category;
+  }
+
+  @Put(":id")
+  async updateCategory(@Param("id") id: string, @Body() body: { name?: unknown; status?: unknown }) {
+    rejectInvalid(await this.validation.validateUpdate(id, body?.name));
+    const data: Partial<Record<keyof Category, unknown>> = {};
+    if (body.name !== undefined) data.name = body.name;
+    if (body.status !== undefined) data.status = body.status;
+    try {
+      return await this.categoriesService.updateCategory(id, data as Partial<Category>);
+    } catch {
+      throw new BadRequestException({ errors: "ERROR_UPDATE_CATEGORY" });
+    }
   }
 }
