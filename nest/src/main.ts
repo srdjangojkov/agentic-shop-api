@@ -11,7 +11,12 @@ async function bootstrap() {
     throw new Error("DB_URI is not set. Copy nest/.env.example to nest/.env and fill it in.");
   }
 
-  const app = await NestFactory.create(AppModule.forRoot(mongoUri));
+  const jwtSecret = process.env.SECRET_JWT;
+  if (!jwtSecret) {
+    throw new Error("SECRET_JWT is not set. Use the same value as the Express app so its access tokens verify.");
+  }
+
+  const app = await NestFactory.create(AppModule.forRoot(mongoUri, jwtSecret));
   const port = Number(process.env.PORT) || DEFAULT_PORT;
   await app.listen(port);
   console.log(`NestJS ready on port ${port}`);

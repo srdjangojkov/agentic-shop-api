@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { INestApplication } from "@nestjs/common";
 import { Connection, Types } from "mongoose";
 import request from "supertest";
-import { createTestApp, withDisconnectedApp } from "./test-app";
+import { authHeader, createTestApp, withDisconnectedApp } from "./test-app";
 import { startTestDb } from "./test-db";
 
 // Same expectations as the Express characterization test in ../../test/categories.delete.test.ts.
@@ -40,7 +40,7 @@ describe("DELETE /categories/:id", () => {
     const id = await insertCategory({ name: "Longboard" });
     await insertCategory({ name: "Skateboard" });
 
-    const res = await request(app.getHttpServer()).delete(`/categories/${id}`);
+    const res = await request(app.getHttpServer()).delete(`/categories/${id}`).set("Authorization", authHeader());
 
     expect(res.status).toBe(200);
     expect(Object.keys(res.body).sort()).toEqual(["_id", "createdAt", "name", "status", "updatedAt"]);
@@ -54,14 +54,14 @@ describe("DELETE /categories/:id", () => {
   it("responds 200 again for an already deleted category", async () => {
     const id = await insertCategory({ name: "Longboard", status: false });
 
-    const res = await request(app.getHttpServer()).delete(`/categories/${id}`);
+    const res = await request(app.getHttpServer()).delete(`/categories/${id}`).set("Authorization", authHeader());
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ name: "Longboard", status: false });
   });
 
   it("responds 400 with a validation error when the id does not exist", async () => {
-    const res = await request(app.getHttpServer()).delete(`/categories/${missingId}`);
+    const res = await request(app.getHttpServer()).delete(`/categories/${missingId}`).set("Authorization", authHeader());
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
@@ -72,7 +72,7 @@ describe("DELETE /categories/:id", () => {
   });
 
   it("responds 400 with two validation errors when the id is not a MongoId", async () => {
-    const res = await request(app.getHttpServer()).delete("/categories/abc");
+    const res = await request(app.getHttpServer()).delete("/categories/abc").set("Authorization", authHeader());
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
@@ -91,7 +91,7 @@ describe("DELETE /categories/:id", () => {
 
   it("responds 400 with the query error as a validation error when the database is unreachable", async () => {
     await withDisconnectedApp(db.uri, async (failingApp) => {
-      const res = await request(failingApp.getHttpServer()).delete(`/categories/${missingId}`);
+      const res = await request(failingApp.getHttpServer()).delete(`/categories/${missingId}`).set("Authorization", authHeader());
 
       expect(res.status).toBe(400);
       expect(res.body.errors).toHaveLength(1);

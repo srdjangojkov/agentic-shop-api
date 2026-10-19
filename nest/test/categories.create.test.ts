@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { INestApplication } from "@nestjs/common";
 import { Connection } from "mongoose";
 import request from "supertest";
-import { createTestApp, withDisconnectedApp } from "./test-app";
+import { authHeader, createTestApp, withDisconnectedApp } from "./test-app";
 import { startTestDb } from "./test-db";
 
 // Same expectations as the Express characterization test in ../../test/categories.create.test.ts,
@@ -36,7 +36,7 @@ describe("POST /categories", () => {
   });
 
   it("creates an active category from the name only and responds 201", async () => {
-    const res = await request(app.getHttpServer()).post("/categories").send({ name: "Longboard", status: false, extra: 1 });
+    const res = await request(app.getHttpServer()).post("/categories").set("Authorization", authHeader()).send({ name: "Longboard", status: false, extra: 1 });
 
     expect(res.status).toBe(201);
     expect(res.headers["content-type"]).toMatch(/^application\/json/);
@@ -56,7 +56,7 @@ describe("POST /categories", () => {
   ])("responds 400 when the name is taken by %s category", async (_label, status) => {
     await insertCategory({ name: "Longboard", status });
 
-    const res = await request(app.getHttpServer()).post("/categories").send({ name: "Longboard" });
+    const res = await request(app.getHttpServer()).post("/categories").set("Authorization", authHeader()).send({ name: "Longboard" });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
@@ -66,7 +66,7 @@ describe("POST /categories", () => {
   });
 
   it("responds 400 with two validation errors when the name is missing", async () => {
-    const res = await request(app.getHttpServer()).post("/categories").send({});
+    const res = await request(app.getHttpServer()).post("/categories").set("Authorization", authHeader()).send({});
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ errors: [invalidName(), invalidName()] });
@@ -74,7 +74,7 @@ describe("POST /categories", () => {
   });
 
   it.each([[""], [null]])("responds 400 with one validation error when the name is %p", async (name) => {
-    const res = await request(app.getHttpServer()).post("/categories").send({ name });
+    const res = await request(app.getHttpServer()).post("/categories").set("Authorization", authHeader()).send({ name });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ errors: [invalidName(name)] });
@@ -86,7 +86,7 @@ describe("POST /categories", () => {
     [123, "123"],
     [true, "true"],
   ])("accepts the name %p and stores it as %p", async (name, stored) => {
-    const res = await request(app.getHttpServer()).post("/categories").send({ name });
+    const res = await request(app.getHttpServer()).post("/categories").set("Authorization", authHeader()).send({ name });
 
     expect(res.status).toBe(201);
     expect(res.body.name).toBe(stored);
@@ -94,7 +94,7 @@ describe("POST /categories", () => {
 
   it("responds 400 with the query error as a validation error when the database is unreachable", async () => {
     await withDisconnectedApp(db.uri, async (failingApp) => {
-      const res = await request(failingApp.getHttpServer()).post("/categories").send({ name: "Longboard" });
+      const res = await request(failingApp.getHttpServer()).post("/categories").set("Authorization", authHeader()).send({ name: "Longboard" });
 
       expect(res.status).toBe(400);
       expect(res.body.errors).toHaveLength(1);
@@ -110,7 +110,7 @@ describe("POST /categories", () => {
     ])("rejects %s name as a validation error before any query (S8)", async (_label, name) => {
       await insertCategory({ name: "Longboard" });
 
-      const res = await request(app.getHttpServer()).post("/categories").send({ name });
+      const res = await request(app.getHttpServer()).post("/categories").set("Authorization", authHeader()).send({ name });
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ errors: [invalidName(name)] });
@@ -118,7 +118,7 @@ describe("POST /categories", () => {
     });
 
     it("reads the name from the body only", async () => {
-      const res = await request(app.getHttpServer()).post("/categories?name=Longboard").send({});
+      const res = await request(app.getHttpServer()).post("/categories?name=Longboard").set("Authorization", authHeader()).send({});
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ errors: [invalidName(), invalidName()] });

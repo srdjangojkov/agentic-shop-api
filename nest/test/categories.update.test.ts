@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { INestApplication } from "@nestjs/common";
 import { Connection, Types } from "mongoose";
 import request from "supertest";
-import { createTestApp, withDisconnectedApp } from "./test-app";
+import { authHeader, createTestApp, withDisconnectedApp } from "./test-app";
 import { startTestDb } from "./test-db";
 
 // Same expectations as the Express characterization test in ../../test/categories.update.test.ts,
@@ -42,7 +42,7 @@ describe("PUT /categories/:id", () => {
   it("renames a category, responds 200 with the updated document and persists it", async () => {
     const id = await insertCategory({ name: "Longboard" });
 
-    const res = await request(app.getHttpServer()).put(`/categories/${id}`).send({ name: "Cruiser" });
+    const res = await request(app.getHttpServer()).put(`/categories/${id}`).set("Authorization", authHeader()).send({ name: "Cruiser" });
 
     expect(res.status).toBe(200);
     expect(Object.keys(res.body).sort()).toEqual(["_id", "createdAt", "name", "status", "updatedAt"]);
@@ -53,7 +53,7 @@ describe("PUT /categories/:id", () => {
   it("accepts the category's current name", async () => {
     const id = await insertCategory({ name: "Longboard" });
 
-    const res = await request(app.getHttpServer()).put(`/categories/${id}`).send({ name: "Longboard" });
+    const res = await request(app.getHttpServer()).put(`/categories/${id}`).set("Authorization", authHeader()).send({ name: "Longboard" });
 
     expect(res.status).toBe(200);
     expect(res.body.name).toBe("Longboard");
@@ -62,11 +62,11 @@ describe("PUT /categories/:id", () => {
   it("applies status from the body, so PUT can soft-delete and restore", async () => {
     const id = await insertCategory({ name: "Longboard" });
 
-    const off = await request(app.getHttpServer()).put(`/categories/${id}`).send({ status: false });
+    const off = await request(app.getHttpServer()).put(`/categories/${id}`).set("Authorization", authHeader()).send({ status: false });
     expect(off.status).toBe(200);
     expect(off.body).toMatchObject({ name: "Longboard", status: false });
 
-    const on = await request(app.getHttpServer()).put(`/categories/${id}`).send({ name: "Longboard", status: true });
+    const on = await request(app.getHttpServer()).put(`/categories/${id}`).set("Authorization", authHeader()).send({ name: "Longboard", status: true });
     expect(on.status).toBe(200);
     expect(await stored(id)).toMatchObject({ status: true });
   });
@@ -74,7 +74,7 @@ describe("PUT /categories/:id", () => {
   it("stores an empty name (no validation of the new name's content)", async () => {
     const id = await insertCategory({ name: "Longboard" });
 
-    const res = await request(app.getHttpServer()).put(`/categories/${id}`).send({ name: "" });
+    const res = await request(app.getHttpServer()).put(`/categories/${id}`).set("Authorization", authHeader()).send({ name: "" });
 
     expect(res.status).toBe(200);
     expect(await stored(id)).toMatchObject({ name: "" });
@@ -84,7 +84,7 @@ describe("PUT /categories/:id", () => {
     const id = await insertCategory({ name: "Longboard" });
     await insertCategory({ name: "Skateboard", status: false });
 
-    const res = await request(app.getHttpServer()).put(`/categories/${id}`).send({ name: "Skateboard" });
+    const res = await request(app.getHttpServer()).put(`/categories/${id}`).set("Authorization", authHeader()).send({ name: "Skateboard" });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
@@ -94,7 +94,7 @@ describe("PUT /categories/:id", () => {
   });
 
   it("responds 400 with a validation error when the id does not exist", async () => {
-    const res = await request(app.getHttpServer()).put(`/categories/${missingId}`).send({ name: "Cruiser" });
+    const res = await request(app.getHttpServer()).put(`/categories/${missingId}`).set("Authorization", authHeader()).send({ name: "Cruiser" });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
@@ -105,7 +105,7 @@ describe("PUT /categories/:id", () => {
   });
 
   it("responds 400 with three validation errors when the id is not a MongoId", async () => {
-    const res = await request(app.getHttpServer()).put("/categories/abc").send({ name: "Cruiser" });
+    const res = await request(app.getHttpServer()).put("/categories/abc").set("Authorization", authHeader()).send({ name: "Cruiser" });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
@@ -119,7 +119,7 @@ describe("PUT /categories/:id", () => {
 
   it("responds 400 with the query errors as validation errors when the database is unreachable", async () => {
     await withDisconnectedApp(db.uri, async (failingApp) => {
-      const res = await request(failingApp.getHttpServer()).put(`/categories/${missingId}`).send({ name: "Cruiser" });
+      const res = await request(failingApp.getHttpServer()).put(`/categories/${missingId}`).set("Authorization", authHeader()).send({ name: "Cruiser" });
 
       expect(res.status).toBe(400);
       expect(res.body.errors.length).toBeGreaterThanOrEqual(1);
@@ -135,7 +135,7 @@ describe("PUT /categories/:id", () => {
       const id = await insertCategory({ name: "Longboard" });
 
       const res = await request(app.getHttpServer())
-        .put(`/categories/${id}`)
+        .put(`/categories/${id}`).set("Authorization", authHeader())
         .send({ name: "Cruiser", $unset: { status: 1 }, extra: 1 });
 
       expect(res.status).toBe(200);
@@ -150,7 +150,7 @@ describe("PUT /categories/:id", () => {
     ])("rejects %s name as a validation error on the name (S8)", async (_label, name) => {
       const id = await insertCategory({ name: "Longboard" });
 
-      const res = await request(app.getHttpServer()).put(`/categories/${id}`).send({ name });
+      const res = await request(app.getHttpServer()).put(`/categories/${id}`).set("Authorization", authHeader()).send({ name });
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({

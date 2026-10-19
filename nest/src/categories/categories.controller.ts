@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { CategoriesService } from "./categories.service";
 import { CategoriesValidation, FieldError } from "./categories.validation";
 import { Category } from "./category.schema";
@@ -38,6 +39,7 @@ export class CategoriesController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   async createCategory(@Body() body: { name?: unknown }) {
     rejectInvalid(await this.validation.validateCreate(body?.name));
     let category;
@@ -53,6 +55,7 @@ export class CategoriesController {
   }
 
   @Put(":id")
+  @UseGuards(JwtAuthGuard)
   async updateCategory(@Param("id") id: string, @Body() body: { name?: unknown; status?: unknown }) {
     rejectInvalid(await this.validation.validateUpdate(id, body?.name));
     const data: Partial<Record<keyof Category, unknown>> = {};
@@ -66,6 +69,7 @@ export class CategoriesController {
   }
 
   @Delete(":id")
+  @UseGuards(JwtAuthGuard)
   async deleteCategory(@Param("id") id: string) {
     rejectInvalid(await this.validation.validateId(id));
     try {
