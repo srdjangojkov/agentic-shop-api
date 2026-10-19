@@ -48,11 +48,11 @@ validation passed. Express also `console.log`s raw errors.
 
 ## Target behavior (NestJS)
 
-Extend `nest/src/categories/` only: no new module, no new dependency.
+Extend `nest/src/categories/`; after the S3 decision, `nest/src/auth/` (guard module) and `jsonwebtoken` were added with the owner's approval.
 
 - `categories.service.ts`: `getCategory`, `createCategory` (keeps the sentinel), `updateCategory`,
   `deleteCategory` (soft delete), mirroring `src/services/categories.ts`.
-- `category.validation.ts`: mirrors the four express-validator chains and builds the same error entries,
+- `categories.validation.ts`: mirrors the four express-validator chains and builds the same error entries,
   using the same Mongoose queries (`findById`, `findOne`) so messages match. `isMongoId` = 24 hex chars, as in
   validator.js.
 - `categories.controller.ts`: `@Get(":id")`, `@Post()` (201), `@Put(":id")`, `@Delete(":id")`. Validation
