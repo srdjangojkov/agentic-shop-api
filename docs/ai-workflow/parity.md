@@ -6,7 +6,7 @@ behavior; "Differences" lists every known difference, accepted or not. Security 
 
 | Endpoint | Express test | NestJS test | Status | Differences | Flags |
 | --- | --- | --- | --- | --- | --- |
-| `GET /categories` | `test/categories.list.test.ts` | `nest/test/categories.list.test.ts` | Migrated; parity verified 2026-10-19 | Body identical. Error response identical (`400 { errors: "ERROR_GET_CATEGORIES" }`); Express also `console.log`s the raw error, NestJS does not. Headers differ only app-wide (below). | None (A1 open: endpoint stays public) |
+| `GET /categories` | `test/categories.list.test.ts` | `nest/test/categories.list.test.ts` | Migrated; parity verified 2026-10-19 (cloud, then by the owner locally) | Body identical. Error response identical (`400 { errors: "ERROR_GET_CATEGORIES" }`); Express also `console.log`s the raw error, NestJS does not. Headers differ only app-wide (below). | None (A1 open: endpoint stays public) |
 
 How `GET /categories` parity was checked: both test files assert the same three cases (empty list,
 active-only with exact fields, query failure). Both apps were then run side by side (3002 and 3003) against

@@ -17,6 +17,7 @@ before any change relies on them.
 | 2026-10-19 | NestJS 11 (CommonJS), not 12. NestJS 12 packages are ESM-only, and Jest cannot load them from CommonJS tests on Node below 24.9 (verified: `Must use import to load ES Module`). | Keeps Jest + ts-jest working with the same CommonJS setup as the Express app. |
 | 2026-10-19 | The NestJS app copies the schemas it needs instead of importing from `src/`. | Keeps the apps independent. |
 | 2026-10-19 | `GET /categories` in NestJS keeps the Express error response (`400 { errors: "ERROR_GET_CATEGORIES" }`) for the demo. Recorded in `parity.md`. | Parity first; changing it is a separate decision. |
+| 2026-10-19 | Plan step of `feature-workflow` expanded: reads the project docs first, uses `mattpocock-skills:codebase-design` for module/seam changes and `mattpocock-skills:grill-with-docs` for ambiguous behavior, and follows a fixed plan template. | Owner request after the `GET /categories` demo. |
 
 ## Open (owner decides)
 
