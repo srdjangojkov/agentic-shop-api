@@ -386,6 +386,7 @@ Documented vs. actual, confirmed from the JSDoc text:
   `emitDecoratorMetadata` are off (NestJS needs both).
 - `@types/mongoose` 5.x is installed alongside Mongoose 7, which ships its own types. **Unknown:** whether it
   causes type conflicts.
+- Separate NestJS 11 app in `nest/` (own `package.json`, port 3003); root `tsconfig.json` excludes it.
 - Jest + Supertest + `mongodb-memory-server-core` tests in `test/` (only `GET /categories` so far). App creation lives in `src/create-app.ts`, separate from DB connect and listen in `src/app.ts`. No CI config, ESLint, Prettier or editorconfig. No Dockerfile or compose file.
 
 ---

@@ -7,7 +7,8 @@ read it before planning any migration or behavior change.
 ## Project
 
 REST API for a small shop (users, categories, products with images, coupons, search).
-Single package, no monorepo, no frontend.
+The Express app is the root package (port 3002). The NestJS migration target is a separate package in
+`nest/` (port 3003) with its own dependencies, scripts and tests. No frontend.
 
 Stack (versions from `package-lock.json`):
 
@@ -27,6 +28,7 @@ Layered Express app, one file per resource in each layer:
 src/app.ts         entry point: DB connect, listen, Swagger (calls createApp)
 src/create-app.ts  createApp(): middleware, router mounting, GET / (no DB, no listen; used by tests)
 test/              Jest + Supertest tests against an isolated in-memory MongoDB
+nest/              separate NestJS app (migration target, port 3003); see nest/CLAUDE.md
 src/routes/        Express Routers + @swagger JSDoc blocks
 src/validators/    express-validator chains per route; db-validators.ts = DB-backed checks
 src/controllers/   (req, res) handlers: call service, map result to HTTP status/JSON
@@ -65,6 +67,7 @@ Only these exist in `package.json`. `node_modules` is not committed; `npm instal
 | `npm run dev` | Runs `nodemon ./src/app.ts` (via `ts-node`). Verified 2026-10-19: server starts, `GET /` and `/docs` return 200. Needs a reachable MongoDB: without one, data routes return 400 after 10 s and the process crashes once the connect attempt fails. |
 | `npm test` | Runs Jest (`test/`) against a throwaway MongoDB from `mongodb-memory-server-core`; never uses `DB_URI`. First run downloads a MongoDB binary; set `MONGOMS_SYSTEM_BINARY=/path/to/mongod` to use an existing one. Verified 2026-10-19 in the cloud environment (2/2 pass). |
 | `npx tsc --noEmit` | Not a script, but `typescript` is a devDependency. Passes (verified 2026-10-19). Use it as the type-check. |
+| `cd nest && npm ci && npm run typecheck && npm test` | NestJS app checks; see `nest/CLAUDE.md`. Root `tsc` excludes `nest/`. |
 
 There is no build, start, lint, or format script. Copy `.env.example` to `.env` for local setup. Environment variables read by
 the code: `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME`, `CLOUDINARY_KEY`,
@@ -117,7 +120,7 @@ Full list with file references: inventory doc, section "Known issues".
 
 ## Long-term goal: Express -> NestJS
 
-The repository will be migrated incrementally to NestJS. No NestJS code exists yet.
+The repository will be migrated incrementally to NestJS, in the separate app in `nest/` (NestJS 11).
 
 Migration principles:
 

@@ -14,6 +14,7 @@ before any change relies on them.
 | 2026-10-19 | No MongoDB MCP server; database behavior is verified through tests. | Tests are reproducible and isolated. |
 | 2026-10-19 | No new dependency, network-policy change or machine-wide setting without the owner's approval. | Keeps the setup minimal and reviewable. |
 | 2026-10-19 | Workflow v1 is minimal: one `feature-workflow` skill, Matt Pocock's `tdd` and `code-review` skills, one read-only `reviewer` agent, the built-in Explore agent, one `protect-env` hook. | Add pieces only when a real need appears. |
+| 2026-10-19 | NestJS 11 (CommonJS), not 12. NestJS 12 packages are ESM-only, and Jest cannot load them from CommonJS tests on Node below 24.9 (verified: `Must use import to load ES Module`). | Keeps Jest + ts-jest working with the same CommonJS setup as the Express app. |
 | 2026-10-19 | The NestJS app copies the schemas it needs instead of importing from `src/`. | Keeps the apps independent. |
 | 2026-10-19 | `GET /categories` in NestJS keeps the Express error response (`400 { errors: "ERROR_GET_CATEGORIES" }`) for the demo. Recorded in `parity.md`. | Parity first; changing it is a separate decision. |
 
