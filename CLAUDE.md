@@ -117,8 +117,8 @@ Full list with file references: inventory doc, section "Known issues".
   `mattpocock-skills@mattpocock`) and the read-only `reviewer` agent (`.claude/agents/reviewer.md`).
 - Decisions and open questions: `docs/ai-workflow/decisions.md`. Migrated endpoints and their differences:
   `docs/ai-workflow/parity.md`.
-- **Security flags S1–S8 and the authorization policy (A1) are open** (S3 is decided only for NestJS category
-  writes). Never carry that behavior into NestJS without a decision recorded in `decisions.md`.
+- **Security flags S1–S8 and the authorization policy (A1) are open** (S3 and S8 are decided only for NestJS
+  category writes). Never carry that behavior into NestJS without a decision recorded in `decisions.md`.
 - Hook `protect-env` (`.claude/settings.json`) blocks Claude's file tools and Bash commands that name
   `.env` files. It reduces accidental exposure; it is not a guarantee. Test: `node .claude/hooks/protect-env.test.js`.
 
