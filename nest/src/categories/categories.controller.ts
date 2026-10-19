@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Put } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put } from "@nestjs/common";
 import { CategoriesService } from "./categories.service";
 import { CategoriesValidation, FieldError } from "./categories.validation";
 import { Category } from "./category.schema";
@@ -62,6 +62,16 @@ export class CategoriesController {
       return await this.categoriesService.updateCategory(id, data as Partial<Category>);
     } catch {
       throw new BadRequestException({ errors: "ERROR_UPDATE_CATEGORY" });
+    }
+  }
+
+  @Delete(":id")
+  async deleteCategory(@Param("id") id: string) {
+    rejectInvalid(await this.validation.validateId(id));
+    try {
+      return await this.categoriesService.deleteCategory(id);
+    } catch {
+      throw new BadRequestException({ errors: "ERROR_DELETE_CATEGORY" });
     }
   }
 }

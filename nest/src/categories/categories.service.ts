@@ -27,4 +27,9 @@ export class CategoriesService {
   updateCategory(id: string, data: Partial<Category>) {
     return this.categoryModel.findByIdAndUpdate(id, data, { new: true });
   }
+
+  // Soft delete, as in Express.
+  deleteCategory(id: string) {
+    return this.categoryModel.findByIdAndUpdate(id, { status: false }, { new: true });
+  }
 }
