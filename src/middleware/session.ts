@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyToken } from "../utils/jwt.handle";
+import { verifyAccessToken as verifyToken } from "../utils/jwt.handle";
 import { JwtPayload } from "jsonwebtoken";
 
 interface RequestExt extends Request {
