@@ -18,15 +18,43 @@ Check `docs/ai-workflow/api-inventory.md` for the documented behavior and quirks
 
 ## 2. Plan, then stop for approval
 
-Write a short plan for the user:
+Before proposing the plan, read `CLAUDE.md`, `docs/ai-workflow/decisions.md`, `docs/ai-workflow/parity.md`
+and the relevant sections of `docs/ai-workflow/api-inventory.md`. Use the findings from step 1 and cite
+`file:line` locations where useful.
 
-- The behavior to keep, as observed in Express (status codes, response shape, error shape).
-- Any contract change, named explicitly. None is made silently.
-- Any security flag from `decisions.md` (S1–S7, A1) the change touches. If one is touched, stop: the user
-  decides first. Never copy flagged behavior into NestJS by default.
-- The test seam (normally the HTTP endpoint) and the test files.
+- If the change introduces or modifies module boundaries, service responsibilities or test seams, invoke
+  **`mattpocock-skills:codebase-design`** and use its relevant recommendations. Add no unnecessary
+  abstractions or unrelated refactors.
+- If existing behavior, business rules or the intended API contract are ambiguous, invoke
+  **`mattpocock-skills:grill-with-docs`** to resolve it before finalizing the plan. Ask only questions that
+  materially affect behavior, compatibility, security or data integrity. Do not guess missing requirements.
 
-Wait for the user's approval before writing code.
+Write a short plan for the user with these sections:
+
+- **Current behavior:** the Express implementation as observed in the code: status codes, request
+  validation, response shapes, error handling, persistence and relevant edge cases. Separate verified
+  behavior from assumptions or undocumented behavior.
+- **Target behavior:** how the change is implemented in NestJS and how it fits the existing module
+  architecture. Keep it as small as reasonably possible.
+- **Contract changes:** every proposed difference from Express, each with why it is needed. No API contract
+  or business-rule change is made silently. If there are none, say so.
+- **Security flags:** any flag from `decisions.md` (S1–S7, A1) the change touches. If one is involved, stop
+  and ask the user to decide. Never copy flagged behavior into NestJS by default or resolve a security
+  decision silently.
+- **Test strategy:** the test seam, the Express characterization tests, the NestJS tests, their files and
+  the isolated test-database helpers. List the success, validation, not-found and failure cases to cover.
+- **Verification and review:** the type-checks, test suites, hook test and independent reviews that will
+  run, using the commands in step 4 and the reviews in step 5.
+- **Documentation:** the expected updates to `parity.md`, `api-inventory.md` and `decisions.md`.
+
+Keep the plan concise but specific enough for the user to judge behavior, scope, risks and tests.
+
+Wait for the user's explicit approval before writing or modifying implementation code, tests or project
+files. Read-only exploration and analysis are allowed before approval. If a blocking ambiguity or security
+decision needs the user, ask one focused question and wait instead of assuming.
+
+After approval, follow the remaining steps in order. Approval of the plan is not permission to expand scope
+or to make further contract or security decisions.
 
 ## 3. Test first
 

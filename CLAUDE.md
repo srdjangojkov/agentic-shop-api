@@ -65,7 +65,7 @@ Only these exist in `package.json`. `node_modules` is not committed; `npm instal
 | --- | --- |
 | `npm install` | Installs dependencies. |
 | `npm run dev` | Runs `nodemon ./src/app.ts` (via `ts-node`). Verified 2026-10-19: server starts, `GET /` and `/docs` return 200. Needs a reachable MongoDB: without one, data routes return 400 after 10 s and the process crashes once the connect attempt fails. |
-| `npm test` | Runs Jest (`test/`) against a throwaway MongoDB from `mongodb-memory-server-core`; never uses `DB_URI`. First run downloads a MongoDB binary; set `MONGOMS_SYSTEM_BINARY=/path/to/mongod` to use an existing one. Verified 2026-10-19 in the cloud environment (2/2 pass). |
+| `npm test` | Runs Jest (`test/`) against a throwaway MongoDB from `mongodb-memory-server-core`; never uses `DB_URI`. First run downloads a MongoDB binary; set `MONGOMS_SYSTEM_BINARY=/path/to/mongod` to use an existing one. Verified 2026-10-19 in the cloud environment (3/3 pass) and by the owner locally. |
 | `npx tsc --noEmit` | Not a script, but `typescript` is a devDependency. Passes (verified 2026-10-19). Use it as the type-check. |
 | `cd nest && npm ci && npm run typecheck && npm test` | NestJS app checks; see `nest/CLAUDE.md`. Root `tsc` excludes `nest/`. |
 
@@ -83,6 +83,7 @@ the code: `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME
 | App responds at `http://localhost:3002` | Responds | Owner, local machine |
 | `GET /categories` | Characterized by `test/categories.list.test.ts` (3 tests pass) | Claude, cloud environment, isolated DB |
 | NestJS `GET /categories` on 3003 | `nest/test/categories.list.test.ts` (3 tests pass); same body as Express side by side, see `parity.md` | Claude, cloud environment, isolated DB |
+| Root and `nest/` test suites; both apps side by side (3002, 3003) with `GET /categories` compared | Verified | Owner, local machine |
 | Express on port 3002 against an isolated local MongoDB: `GET /`, `/docs`, `/categories` | All 200 | Claude, cloud environment |
 | All other endpoints and features (CRUD, auth, uploads, search, Cloudinary) | **Not verified** | No tests yet |
 
@@ -110,7 +111,8 @@ Full list with file references: inventory doc, section "Known issues".
 - Non-trivial changes and migration slices go through the `feature-workflow` skill
   (`.claude/skills/feature-workflow/SKILL.md`): explore, plan and wait for approval, test first, implement,
   review, record, PR.
-- It uses Matt Pocock's `mattpocock-skills:tdd` and `mattpocock-skills:code-review` skills (plugin
+- It uses Matt Pocock's `mattpocock-skills:tdd`, `:code-review`, and, when the plan needs them,
+  `:codebase-design` and `:grill-with-docs` skills (plugin
   `mattpocock-skills@mattpocock`) and the read-only `reviewer` agent (`.claude/agents/reviewer.md`).
 - Decisions and open questions: `docs/ai-workflow/decisions.md`. Migrated endpoints and their differences:
   `docs/ai-workflow/parity.md`.
