@@ -10,4 +10,8 @@ export class CategoriesService {
   getCategories() {
     return this.categoryModel.find({ status: true });
   }
+
+  getCategory(id: string) {
+    return this.categoryModel.findById(id);
+  }
 }

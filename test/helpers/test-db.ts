@@ -25,3 +25,23 @@ export const stopTestDb = async () => {
   await mongoose.disconnect();
   await server?.stop();
 };
+
+// Runs `fn` while the test database is disconnected, so queries buffer and fail
+// after a short timeout, then reconnects. console.log is silenced because Express
+// logs raw errors in handleHttpError.
+export const withDisconnectedDb = async (fn: () => Promise<void>) => {
+  const { host, port, name } = mongoose.connection;
+  const uri = `mongodb://${host}:${port}/${name}`;
+  const previousTimeout = mongoose.get("bufferTimeoutMS");
+  const logSpy = jest.spyOn(console, "log").mockImplementation(() => undefined);
+  mongoose.set("bufferTimeoutMS", 200);
+  await mongoose.disconnect();
+
+  try {
+    await fn();
+  } finally {
+    logSpy.mockRestore();
+    mongoose.set("bufferTimeoutMS", previousTimeout);
+    await mongoose.connect(uri);
+  }
+};
