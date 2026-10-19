@@ -5,8 +5,10 @@ Project-wide context and working rules are in [`CLAUDE.md`](../../CLAUDE.md).
 
 **Basis:** static reading of every file under `src/`, plus `package.json`, `package-lock.json`,
 `tsconfig.json`, `README.md` and `.gitignore` at commit `093b7cb` ("first commit").
-The app was **not** started, no database was connected, and `tsc` was not run while writing this
-(dependencies are not installed). Labels used below:
+The app was not started and `tsc` was not run while writing the first version.
+**Update 2026-10-19 (after commit `2120abe`):** `npx tsc --noEmit` passes, and `npm run dev` starts the
+server (`GET /` and `GET /docs/` return 200) with an unreachable DB. No database was connected from the
+cloud environment. Labels used below:
 
 - **Confirmed**: read directly in the code (file and line given where useful).
 - **Inferred**: follows from the code and library semantics, but was not executed.
@@ -59,14 +61,14 @@ Unlabeled statements are confirmed.
 
 - `PORT = process.env.PORT || 30001` (`app.ts:16`). README and a comment in `controllers/search.ts`
   mention port 3002. **Unknown:** what `PORT` is set to in real environments.
-- `db().then(...)` has no `.catch`; `app.listen` runs regardless of DB connection. **Inferred:** a failed
-  connection causes an unhandled rejection while the HTTP server keeps listening.
+- `db().then(...)` has no `.catch`; `app.listen` runs regardless of DB connection. Verified: a failed
+  connection is an unhandled rejection that terminates the process (Node 22 default).
 - No global error-handling middleware and no 404 handler. Unmatched routes get Express's default 404.
 
 ### Environment variables (names only)
 
 `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME`, `CLOUDINARY_KEY`,
-`CLOUDINARY_SECRET`. `.env` is gitignored and there is no `.env.example`. `jwt.handle.ts` falls back to
+`CLOUDINARY_SECRET`. `.env` is gitignored; `.env.example` lists them with empty or local placeholder values. `jwt.handle.ts` falls back to
 hard-coded secret strings when the JWT variables are unset.
 
 ---
@@ -143,9 +145,8 @@ request cookies, including the refresh token (`controllers/auth.ts:36`).
 `req.user`, and responds `401 { msg: "INVALID_SESSION" }` on any error (a falsy result would return
 `401 { msg: '"INVALID_JWT"' }` with literal quotes).
 
-- It imports `verifyToken`, which `jwt.handle.ts` does not export (it exports `verifyAccessToken`).
-  **Inferred:** `tsc` reports a missing-export error; under type-checking `ts-node` (the default) startup
-  fails because `routes/categories.ts` and `routes/users.ts` import this module.
+- It imports `verifyAccessToken as verifyToken` from `jwt.handle.ts`. (Before commit `2120abe` it imported a
+  non-existent `verifyToken`, which broke the type-check.)
 - `checkJWT` is attached to **no active route**. Protected variants exist only as comments in
   `routes/categories.ts:160-162` and `routes/users.ts:164-166`.
 
@@ -377,8 +378,7 @@ Documented vs. actual, confirmed from the JSDoc text:
 
 ## 8. Tooling and build
 
-- Scripts: `dev` (`nodemon ./src/app.ts`) and a placeholder `test`. `nodemon` is not in `package.json` or
-  `package-lock.json`. No `build`, `start`, `lint`, or `format`.
+- Scripts: `dev` (`nodemon ./src/app.ts`, nodemon is a devDependency since `2120abe`) and a placeholder `test`. No `build`, `start`, `lint`, or `format`.
 - `tsconfig.json`: `strict`, `commonjs`, `es2016`, `esModuleInterop`, `skipLibCheck`. No `outDir`,
   `rootDir` or `include`, so `tsc` would emit `.js` next to the sources. `experimentalDecorators` and
   `emitDecoratorMetadata` are off (NestJS needs both).
@@ -390,9 +390,9 @@ Documented vs. actual, confirmed from the JSDoc text:
 
 ## 9. Known issues (confirmed unless labeled)
 
-Documented here only; none have been fixed.
+Documented here only; only item 1 has been fixed.
 
-1. `middleware/session.ts` imports non-existent `verifyToken` (type error; startup impact **inferred**).
+1. ~~`middleware/session.ts` imports non-existent `verifyToken`~~ Fixed in `2120abe`.
 2. No authentication or authorization on any write endpoint.
 3. JWT `id` claim contains the email; hard-coded fallback JWT secrets.
 4. Password hash leaked by `POST /users`, `PUT /users/:id`, `DELETE /users/:id` and `search/users`.
@@ -404,9 +404,10 @@ Documented here only; none have been fixed.
 10. Unescaped user regex in search (ReDoS / throw).
 11. Cloudinary assets orphaned on failed create, update and delete.
 12. Login succeeds for soft-deleted users; get-by-id returns soft-deleted records.
-13. Default port `30001` vs. README's 3002; `nodemon` missing; `npm test` always fails.
+13. Default port `30001` vs. README's 3002; `npm test` always fails (nodemon added in `2120abe`).
 14. Swagger inaccuracies listed in section 7.
 15. Validator message "min length 8" for a min-length-2 check; error code typo `ERORR_DELETE_USER`.
+16. With MongoDB unreachable the server starts, `GET /categories` returns `400 { errors: "ERROR_GET_CATEGORIES" }` after Mongoose's 10 s buffering timeout, and the process then exits on the unhandled `MongooseServerSelectionError` from `db()` (verified 2026-10-19).
 
 ---
 
@@ -447,4 +448,3 @@ Per area:
 - Real `PORT`, deployment target, and whether HTTPS is used (affects the `secure` refresh cookie).
 - Is there production data, and do the unique indexes exist in it?
 - Coupon semantics (`discount` unit, why it is unique) and whether coupons connect to any order flow elsewhere.
-- How the app is actually run today, given `nodemon` is missing and the type error in `session.ts`.
