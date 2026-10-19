@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import request from "supertest";
 import createApp from "../src/create-app";
 import CategoryModel from "../src/models/category";
@@ -35,6 +36,27 @@ describe("GET /categories", () => {
       expect(category.status).toBe(true);
       expect(category._id).toMatch(/^[0-9a-f]{24}$/);
       expect(new Date(category.createdAt).toISOString()).toBe(category.createdAt);
+    }
+  });
+
+  it("responds 400 ERROR_GET_CATEGORIES when the query fails", async () => {
+    // Disconnected, queries buffer and then time out; a short timeout keeps the failure fast.
+    const { host, port, name } = mongoose.connection;
+    const uri = `mongodb://${host}:${port}/${name}`;
+    const previousTimeout = mongoose.get("bufferTimeoutMS");
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => undefined);
+    mongoose.set("bufferTimeoutMS", 200);
+    await mongoose.disconnect();
+
+    try {
+      const res = await request(app).get("/categories");
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ errors: "ERROR_GET_CATEGORIES" });
+    } finally {
+      logSpy.mockRestore();
+      mongoose.set("bufferTimeoutMS", previousTimeout);
+      await mongoose.connect(uri);
     }
   });
 });

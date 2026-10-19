@@ -387,7 +387,7 @@ Documented vs. actual, confirmed from the JSDoc text:
 - `@types/mongoose` 5.x is installed alongside Mongoose 7, which ships its own types. **Unknown:** whether it
   causes type conflicts.
 - Separate NestJS 11 app in `nest/` (own `package.json`, port 3003); root `tsconfig.json` excludes it.
-- Jest + Supertest + `mongodb-memory-server-core` tests in `test/` (only `GET /categories` so far). App creation lives in `src/create-app.ts`, separate from DB connect and listen in `src/app.ts`. No CI config, ESLint, Prettier or editorconfig. No Dockerfile or compose file.
+- Jest + Supertest + `mongodb-memory-server-core` tests in `test/` (only `GET /categories` so far; `nest/test/` mirrors them for the NestJS app). App creation lives in `src/create-app.ts`, separate from DB connect and listen in `src/app.ts`. No CI config, ESLint, Prettier or editorconfig. No Dockerfile or compose file.
 
 ---
 
@@ -424,8 +424,8 @@ General:
 
 - Characterization tests against the current Express app (e.g. supertest + an in-memory or test MongoDB)
   should come first, so each migrated module can be compared to the original responses, quirks included.
-- Decide early whether NestJS runs as a separate app or mounts on the existing Express instance
-  (`@nestjs/platform-express` with an adapter) to allow module-by-module cutover. **Open decision.**
+- NestJS runs as a separate app in `nest/` on port 3003 (decided 2026-10-19, see `decisions.md`).
+  `GET /categories` is the first migrated endpoint; status per endpoint is in `parity.md`.
 - `tsconfig` needs `experimentalDecorators` and `emitDecoratorMetadata`, plus an `outDir`.
 - Error shapes (`{ errors: CODE }`, `{ msg: ... }`, express-validator objects) and the "400 for everything"
   behavior must be reproduced with exception filters if behavior is preserved.

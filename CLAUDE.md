@@ -81,7 +81,8 @@ the code: `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME
 | `npm run dev` startup, `GET /`, `GET /docs` | Server starts; both return 200 | Claude, cloud environment (no DB) |
 | MongoDB Atlas connection | Connects | Owner, local machine |
 | App responds at `http://localhost:3002` | Responds | Owner, local machine |
-| `GET /categories` | Characterized by `test/categories.list.test.ts` (2 tests pass) | Claude, cloud environment, isolated DB |
+| `GET /categories` | Characterized by `test/categories.list.test.ts` (3 tests pass) | Claude, cloud environment, isolated DB |
+| NestJS `GET /categories` on 3003 | `nest/test/categories.list.test.ts` (3 tests pass); same body as Express side by side, see `parity.md` | Claude, cloud environment, isolated DB |
 | Express on port 3002 against an isolated local MongoDB: `GET /`, `/docs`, `/categories` | All 200 | Claude, cloud environment |
 | All other endpoints and features (CRUD, auth, uploads, search, Cloudinary) | **Not verified** | No tests yet |
 
@@ -92,7 +93,7 @@ endpoint behaves correctly; treat endpoint behavior as unverified until tests co
 
 - **No authentication on any write route.** The `checkJWT` versions of category/user POST/PUT/DELETE are
   commented out; products and coupons never had it. Swagger still marks some as `bearerAuth`.
-- Tests cover only `GET /categories`. No CI, no lint, no build output config (`tsconfig.json` has no `outDir`/`include`).
+- Tests cover only `GET /categories` (both apps). No CI, no lint, no build output config (`tsconfig.json` has no `outDir`/`include`).
 - Async handlers are not wrapped; errors thrown outside `try` (e.g. `createUser`, `createProduct`
   without a file, all `search` branches) are unhandled rejections in Express 4. No global error/404 handler.
 - Port defaults to `30001` in `app.ts` when `PORT` is unset; README and `.env.example` use 3002.
