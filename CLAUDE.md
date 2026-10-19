@@ -68,6 +68,19 @@ There is no build, start, lint, or format script. Copy `.env.example` to `.env` 
 the code: `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME`, `CLOUDINARY_KEY`,
 `CLOUDINARY_SECRET` (`.env` is gitignored). Never print their values.
 
+## Verification status (2026-10-19)
+
+| Check | Result | Verified by |
+| --- | --- | --- |
+| `npx tsc --noEmit` | Passes | Claude, cloud environment |
+| `npm run dev` startup, `GET /`, `GET /docs` | Server starts; both return 200 | Claude, cloud environment (no DB) |
+| MongoDB Atlas connection | Connects | Owner, local machine |
+| App responds at `http://localhost:3002` | Responds | Owner, local machine |
+| Individual endpoints and features (CRUD, auth, uploads, search, Cloudinary) | **Not verified** | No tests exist; nothing beyond the above was exercised |
+
+A response at `http://localhost:3002` only shows the server is up and connected. It does not confirm that any
+endpoint behaves correctly; treat endpoint behavior as unverified until tests cover it.
+
 ## Known issues (document, do not silently fix)
 
 - **No authentication on any write route.** The `checkJWT` versions of category/user POST/PUT/DELETE are
@@ -77,7 +90,8 @@ the code: `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME
   without a file, all `search` branches) are unhandled rejections in Express 4. No global error/404 handler.
 - Port defaults to `30001` in `app.ts` when `PORT` is unset; README and `.env.example` use 3002.
 - No DB connection error handling: `db()` has no `.catch`, so a failed connect crashes the process (unhandled rejection) after the server has started.
-- Atlas `mongodb+srv` URIs fail on machines whose DNS refuses SRV lookups; see `.env.example` for the non-SRV form.
+- Atlas `mongodb+srv` URIs can fail where local DNS refuses SRV lookups. Resolved for the owner's local setup by using
+  the non-SRV form shown in `.env.example`; not a code issue.
 - JWT payload `id` holds the user's **email**, not `_id`. `jwt.handle.ts` has hard-coded fallback secrets.
 - Swagger is incomplete/inaccurate in places (coupons and search undocumented, product PUT missing its path).
 

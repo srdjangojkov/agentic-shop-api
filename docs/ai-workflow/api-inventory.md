@@ -8,7 +8,9 @@ Project-wide context and working rules are in [`CLAUDE.md`](../../CLAUDE.md).
 The app was not started and `tsc` was not run while writing the first version.
 **Update 2026-10-19 (after commit `2120abe`):** `npx tsc --noEmit` passes, and `npm run dev` starts the
 server (`GET /` and `GET /docs/` return 200) with an unreachable DB. No database was connected from the
-cloud environment. Labels used below:
+cloud environment. **Owner-verified on a local machine:** the app connects to MongoDB Atlas and responds at
+`http://localhost:3002`. That confirms startup and connectivity only; the endpoint behavior described below
+is still read from code and has not been exercised (there are no tests). Labels used below:
 
 - **Confirmed**: read directly in the code (file and line given where useful).
 - **Inferred**: follows from the code and library semantics, but was not executed.
