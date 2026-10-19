@@ -60,25 +60,38 @@ Only these exist in `package.json`. `node_modules` is not committed; `npm instal
 | Command | Status |
 | --- | --- |
 | `npm install` | Installs dependencies. |
-| `npm run dev` | Runs `nodemon ./src/app.ts`. **`nodemon` is not a dependency** (not in `package.json` or the lockfile), so this works only with a global nodemon. Not verified to start. |
+| `npm run dev` | Runs `nodemon ./src/app.ts` (via `ts-node`). Verified 2026-10-19: server starts, `GET /` and `/docs` return 200. Needs a reachable MongoDB: without one, data routes return 400 after 10 s and the process crashes once the connect attempt fails. |
 | `npm test` | Placeholder: prints "Error: no test specified" and exits 1. **There are no tests.** |
-| `npx tsc --noEmit` | Not a script, but `typescript` is a devDependency. Expected to fail today (see Known issues); not yet run in a session. |
+| `npx tsc --noEmit` | Not a script, but `typescript` is a devDependency. Passes (verified 2026-10-19). Use it as the type-check. |
 
-There is no build, start, lint, or format script, and no `.env.example`. Environment variables read by
+There is no build, start, lint, or format script. Copy `.env.example` to `.env` for local setup. Environment variables read by
 the code: `PORT`, `DB_URI`, `SECRET_JWT`, `SECRET_REFRESH_JWT`, `CLOUDINARY_NAME`, `CLOUDINARY_KEY`,
 `CLOUDINARY_SECRET` (`.env` is gitignored). Never print their values.
 
+## Verification status (2026-10-19)
+
+| Check | Result | Verified by |
+| --- | --- | --- |
+| `npx tsc --noEmit` | Passes | Claude, cloud environment |
+| `npm run dev` startup, `GET /`, `GET /docs` | Server starts; both return 200 | Claude, cloud environment (no DB) |
+| MongoDB Atlas connection | Connects | Owner, local machine |
+| App responds at `http://localhost:3002` | Responds | Owner, local machine |
+| Individual endpoints and features (CRUD, auth, uploads, search, Cloudinary) | **Not verified** | No tests exist; nothing beyond the above was exercised |
+
+A response at `http://localhost:3002` only shows the server is up and connected. It does not confirm that any
+endpoint behaves correctly; treat endpoint behavior as unverified until tests cover it.
+
 ## Known issues (document, do not silently fix)
 
-- **Type error:** `src/middleware/session.ts` imports `verifyToken`, but `src/utils/jwt.handle.ts`
-  exports `verifyAccessToken`. `routes/categories.ts` and `routes/users.ts` import this module, so
-  type-checked startup (default `ts-node`) is expected to fail.
 - **No authentication on any write route.** The `checkJWT` versions of category/user POST/PUT/DELETE are
   commented out; products and coupons never had it. Swagger still marks some as `bearerAuth`.
 - No tests, no CI, no lint, no build output config (`tsconfig.json` has no `outDir`/`include`).
 - Async handlers are not wrapped; errors thrown outside `try` (e.g. `createUser`, `createProduct`
   without a file, all `search` branches) are unhandled rejections in Express 4. No global error/404 handler.
-- Port defaults to `30001` in `app.ts`, but the README says 3002.
+- Port defaults to `30001` in `app.ts` when `PORT` is unset; README and `.env.example` use 3002.
+- No DB connection error handling: `db()` has no `.catch`, so a failed connect crashes the process (unhandled rejection) after the server has started.
+- Atlas `mongodb+srv` URIs can fail where local DNS refuses SRV lookups. Resolved for the owner's local setup by using
+  the non-SRV form shown in `.env.example`; not a code issue.
 - JWT payload `id` holds the user's **email**, not `_id`. `jwt.handle.ts` has hard-coded fallback secrets.
 - Swagger is incomplete/inaccurate in places (coupons and search undocumented, product PUT missing its path).
 
