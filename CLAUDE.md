@@ -115,6 +115,8 @@ Full list with file references: inventory doc, section "Known issues".
 - It uses Matt Pocock's `mattpocock-skills:tdd`, `:code-review`, and, when the plan needs them,
   `:codebase-design` and `:grill-with-docs` skills (plugin
   `mattpocock-skills@mattpocock`) and the read-only `reviewer` agent (`.claude/agents/reviewer.md`).
+- Unexplained failures, intermittent bugs, regressions and repeated failed fixes go through
+  `mattpocock-skills:diagnosing-bugs` first; see the skill's "Bug diagnosis" section.
 - Decisions and open questions: `docs/ai-workflow/decisions.md`. Migrated endpoints and their differences:
   `docs/ai-workflow/parity.md`.
 - **Security flags S1–S8 and the authorization policy (A1) are open** (S3 and S8 are decided only for NestJS
