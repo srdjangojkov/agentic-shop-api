@@ -10,6 +10,25 @@ Runs one change from plan to PR. It orchestrates existing tools instead of re-im
 
 Scope is one change: one endpoint or one concern. Never migrate more than was asked.
 
+## Bug diagnosis
+
+When a task involves an unexplained failure, an intermittent bug, a regression, conflicting runtime
+behavior, or repeated unsuccessful fix attempts, invoke the installed **`mattpocock-skills:diagnosing-bugs`**
+skill. Follow its instructions to investigate the root cause before attempting speculative fixes.
+
+- Reproduce the issue where feasible and collect relevant evidence.
+- Use tests, logs, stack traces, and code inspection to distinguish between competing hypotheses.
+- Do not modify application code during diagnosis unless the skill's instructions and the user's explicit
+  authorization permit it.
+- Report the evidence, likely root cause, and proposed minimal fix.
+- Obtain user approval before implementing the fix when required by the workflow (step 2).
+- After implementation, use the TDD and verification steps in this workflow (steps 3 to 5) to confirm the
+  fix and check for regressions.
+
+Do not invoke bug diagnosis for every routine feature or straightforward test failure. Use it when
+systematic investigation is more appropriate than immediately following the normal implementation workflow.
+If the skill is unavailable in the current session, state that explicitly. Do not claim to have used it.
+
 ## 1. Explore
 
 Use the built-in **Explore** agent to map the code the change touches: the Express route, validator,
